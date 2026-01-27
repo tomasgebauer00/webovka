@@ -297,3 +297,4 @@ export default function Home() {
     </main>
   );
 }
+// Oprava mapy verze 2

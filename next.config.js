@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // Tímto řekneme Vercelu: "Ignoruj chyby v kódu a spusť to!"
+    // !! DŮLEŽITÉ: Ignoruje chyby, aby web prošel i s chybami
     ignoreBuildErrors: true,
   },
   eslint: {
