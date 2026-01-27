@@ -224,7 +224,7 @@ export default function Home() {
           ))}
         </div>
       </div>
-
+      <DealMap deals={filteredDeals} />
       <div className="max-w-7xl mx-auto px-6 mt-8">
         {loading ? (
           <div className="text-center py-20 text-slate-500 animate-pulse">Načítám destinace...</div>
