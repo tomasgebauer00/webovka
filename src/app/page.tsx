@@ -148,10 +148,7 @@ export default function Home() {
           Pojďme cestovat <span className="text-blue-500">levně!</span>
         </h1>
         
-        {/* === MAPA (NOVÉ) === */}
-        <div className="max-w-6xl mx-auto mb-12 hidden md:block">
-            <DealMap deals={filteredDeals} />
-        </div>
+        {/* TADY BYLA HORNÍ MAPA - TEĎ JE SMAZANÁ */}
 
         {/* Vyhledávací panel */}
         <div className="max-w-6xl mx-auto bg-slate-900 border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
@@ -224,7 +221,13 @@ export default function Home() {
           ))}
         </div>
       </div>
-      <DealMap deals={filteredDeals} />
+
+      {/* === MAPA MEZI KATEGORIEMI A VÝPISEM === */}
+      {/* Upraveno: max-w-4xl pro menší šířku a centered */}
+      <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4">
+          <DealMap deals={filteredDeals} />
+      </div>
+
       <div className="max-w-7xl mx-auto px-6 mt-8">
         {loading ? (
           <div className="text-center py-20 text-slate-500 animate-pulse">Načítám destinace...</div>
@@ -237,7 +240,7 @@ export default function Home() {
             {filteredDeals.map((deal) => (
               <div 
                 key={deal.id} 
-                onClick={() => router.push(`/deal/${deal.id}`)} // TADY JE ZMĚNA - ODKAZ NA DETAIL
+                onClick={() => router.push(`/deal/${deal.id}`)}
                 className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 cursor-pointer group relative flex flex-col h-full"
               >
                 <button onClick={(e) => toggleFavorite(e, deal.id)} className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 transition group-active:scale-95">
@@ -294,4 +297,3 @@ export default function Home() {
     </main>
   );
 }
-// Rebuild fix
