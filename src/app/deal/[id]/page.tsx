@@ -11,13 +11,17 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
   const [deal, setDeal] = useState<any>(null);
   const [weather, setWeather] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  
+  // Modaly
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showPackingList, setShowPackingList] = useState(false); // NOVÉ: Modal pro balení
+
   const [bookingData, setBookingData] = useState({ name: '', email: '', phone: '', people: 1 });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [itinerary, setItinerary] = useState<string[] | null>(null);
   
-  // NOVÉ: Časovač pro FOMO efekt
+  // FOMO Časovač
   const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 23, seconds: 12 });
 
   const router = useRouter();
@@ -38,7 +42,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     };
     fetchData();
 
-    // Spuštění odpočtu
     const timer = setInterval(() => {
         setTimeLeft(prev => {
             if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
@@ -49,6 +52,62 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     }, 1000);
     return () => clearInterval(timer);
   }, [id]);
+
+  // === NOVÉ: Logika pro generování seznamu věcí ===
+  const getPackingItems = () => {
+      if (!deal) return [];
+      const items = [
+          { name: "Cestovní pas & Doklady", checked: false },
+          { name: "Mobil & Nabíječka", checked: false },
+          { name: "Peníze & Platební karta", checked: false },
+      ];
+
+      // Podle počasí
+      if (weather && weather.temperature > 20) {
+          items.push(
+              { name: "Sluneční brýle", checked: false },
+              { name: "Opalovací krém", checked: false },
+              { name: "Pokrývka hlavy", checked: false }
+          );
+      }
+      if (weather && weather.temperature < 15) {
+          items.push(
+              { name: "Teplá bunda", checked: false },
+              { name: "Šála nebo šátek", checked: false }
+          );
+      }
+
+      // Podle kategorie
+      if (deal.category === 'Exotika' || deal.description.toLowerCase().includes('moře')) {
+          items.push(
+              { name: "Plavky (alespoň dvoje)", checked: false },
+              { name: "Žabky / Sandály", checked: false },
+              { name: "Repelent proti hmyzu", checked: false },
+              { name: "Adaptér do zásuvky", checked: false }
+          );
+      } else if (deal.category === 'Evropa' || deal.category === 'Česko') {
+           items.push(
+              { name: "Pohodlné boty na chození", checked: false },
+              { name: "Powerbanka na focení", checked: false }
+          );
+      }
+
+      return items;
+  };
+  // Uložíme si seznam do stavu, abychom mohli "odškrtávat"
+  const [packingItems, setPackingItems] = useState<any[]>([]);
+  
+  // Když otevřeme modal, vygenerujeme seznam
+  const openPackingList = () => {
+      setPackingItems(getPackingItems());
+      setShowPackingList(true);
+  };
+
+  const toggleItem = (index: number) => {
+      const newItems = [...packingItems];
+      newItems[index].checked = !newItems[index].checked;
+      setPackingItems(newItems);
+  };
 
   const generateItinerary = () => {
     setAiLoading(true);
@@ -115,7 +174,16 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
             <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 rounded-2xl border border-purple-500/30">
                 <h3 className="text-2xl font-bold text-white mb-2">✨ AI Průvodce</h3>
                 <p className="text-slate-400 mb-4">Nevíš, co tam dělat? Nech umělou inteligenci navrhnout program.</p>
-                {!itinerary && <button onClick={generateItinerary} disabled={aiLoading} className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg">{aiLoading ? 'Generuji...' : '🤖 Vygenerovat program'}</button>}
+                
+                <div className="flex flex-wrap gap-4">
+                    {!itinerary && <button onClick={generateItinerary} disabled={aiLoading} className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg">{aiLoading ? 'Generuji...' : '🤖 Vygenerovat program'}</button>}
+                    
+                    {/* NOVÉ TLAČÍTKO: CO SI SBALIT */}
+                    <button onClick={openPackingList} className="bg-slate-800 text-white border border-white/20 px-6 py-3 rounded-xl font-bold hover:bg-slate-700 transition shadow-lg flex items-center gap-2">
+                        🎒 Co sbalit?
+                    </button>
+                </div>
+
                 {itinerary && <div className="mt-4 space-y-3">{itinerary.map((item, i) => (<div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5"><span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span><span className="text-slate-200">{item}</span></div>))}</div>}
             </section>
 
@@ -127,16 +195,12 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
 
         <div className="space-y-6">
             <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl sticky top-24 shadow-2xl">
-                {/* NOVÉ: FOMO Odpočet */}
                 {!isSoldOut && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 flex justify-between items-center animate-pulse">
                         <span className="text-red-400 text-xs font-bold uppercase">Akce končí za:</span>
-                        <span className="text-white font-mono font-bold">
-                            {String(timeLeft.hours).padStart(2,'0')}:{String(timeLeft.minutes).padStart(2,'0')}:{String(timeLeft.seconds).padStart(2,'0')}
-                        </span>
+                        <span className="text-white font-mono font-bold">{String(timeLeft.hours).padStart(2,'0')}:{String(timeLeft.minutes).padStart(2,'0')}:{String(timeLeft.seconds).padStart(2,'0')}</span>
                     </div>
                 )}
-                
                 <p className="text-sm text-slate-500 mb-1">Cena za osobu</p>
                 <div className="text-4xl font-extrabold text-green-400 mb-6">{deal.total_price.toLocaleString()} Kč</div>
                 <button onClick={() => setShowBookingForm(true)} disabled={isSoldOut} className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg mb-3 ${isSoldOut ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'}`}>{isSoldOut ? '🚫 VYPRODÁNO' : 'Rezervovat hned'}</button>
@@ -145,6 +209,7 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
       
+      {/* MODAL: REZERVACE */}
       {showBookingForm && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowBookingForm(false)}>
              <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={e => e.stopPropagation()}>
@@ -157,6 +222,30 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
                      <div className="flex gap-4"><input type="number" min="1" max={deal.seats_left} className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-white outline-none" value={bookingData.people} onChange={e => setBookingData({...bookingData, people: parseInt(e.target.value)})} /><div className="p-3 text-green-400 font-bold">{(deal.total_price * bookingData.people).toLocaleString()} Kč</div></div>
                      <button type="submit" disabled={bookingLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold mt-4 transition">{bookingLoading ? 'Odesílám...' : 'Odeslat rezervaci'}</button>
                  </form>
+             </div>
+         </div>
+      )}
+
+      {/* NOVÉ: MODAL PACKING LIST */}
+      {showPackingList && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowPackingList(false)}>
+             <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={e => e.stopPropagation()}>
+                 <button onClick={() => setShowPackingList(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white text-xl">✕</button>
+                 <h2 className="text-2xl font-bold text-white mb-2">🎒 Co si sbalit?</h2>
+                 <p className="text-slate-400 text-sm mb-6">Chytrý seznam podle počasí a destinace.</p>
+
+                 <div className="space-y-3">
+                    {packingItems.map((item, index) => (
+                        <div key={index} onClick={() => toggleItem(index)} className={`flex items-center gap-4 p-3 rounded-xl border cursor-pointer transition ${item.checked ? 'bg-green-900/20 border-green-500/30' : 'bg-slate-950 border-white/10 hover:bg-slate-800'}`}>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${item.checked ? 'bg-green-500 border-green-500' : 'border-slate-500'}`}>
+                                {item.checked && <span className="text-white font-bold text-xs">✓</span>}
+                            </div>
+                            <span className={item.checked ? 'text-green-400 line-through' : 'text-white'}>{item.name}</span>
+                        </div>
+                    ))}
+                 </div>
+                 
+                 <button onClick={() => setShowPackingList(false)} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold mt-6 transition">Zavřít</button>
              </div>
          </div>
       )}
