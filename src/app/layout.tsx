@@ -10,9 +10,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'TripHack - Cestuj chytře',
   description: 'Nejlepší nabídky letenek a dovolených.',
-  icons: {
-    icon: '/icon.png', // <--- Tohle zajistí, že se načte tvoje nové logo z public složky
-  },
+  // ZDE JSEM SMAZAL "icons: ...". Next.js si ikonu najde automaticky.
 };
 
 export default function RootLayout({
