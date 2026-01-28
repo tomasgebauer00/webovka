@@ -29,6 +29,11 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchSeats, setSearchSeats] = useState(1); 
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // NOVÉ: Našeptávač
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [dateFrom, setDateFrom] = useState<Date | null>(null);      
   const [dateTo, setDateTo] = useState<Date | null>(null);          
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
@@ -38,6 +43,18 @@ export default function Home() {
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
+
+  // NOVÉ: Logika našeptávače
+  useEffect(() => {
+    if (searchTerm.length > 1) {
+        const uniqueDests = Array.from(new Set(deals.map(d => d.destination)));
+        const filtered = uniqueDests.filter(d => d.toLowerCase().includes(searchTerm.toLowerCase()));
+        setSuggestions(filtered.slice(0, 5)); // Max 5 návrhů
+        setShowSuggestions(true);
+    } else {
+        setShowSuggestions(false);
+    }
+  }, [searchTerm, deals]);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +98,7 @@ export default function Home() {
 
   const filteredDeals = deals.filter(deal => {
     if (activeCategory !== 'all' && deal.category !== activeCategory) return false;
-    if (deal.seats_left < searchSeats && deal.seats_left > 0) return false; // Ukázat i vyprodané
+    if (deal.seats_left < searchSeats && deal.seats_left > 0) return false;
     if (searchTerm && !deal.destination.toLowerCase().includes(searchTerm.toLowerCase()) && !deal.country.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (dateFrom && new Date(deal.departure_date) < dateFrom) return false;
     if (dateTo && new Date(deal.return_date) > dateTo) return false;
@@ -94,8 +111,36 @@ export default function Home() {
       <div className="relative pt-28 pb-8 text-center px-4">
         <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
         
+        {/* Vyhledávací panel */}
         <div className="max-w-6xl mx-auto bg-slate-900 border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
-          <div className="flex-[1.5] px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group"><label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Kam?</label><input type="text" placeholder="Všechny destinace" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder-slate-500" /></div>
+          
+          {/* INPUT S NAŠEPTÁVAČEM */}
+          <div className="flex-[1.5] px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group">
+             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Kam?</label>
+             <input 
+                type="text" 
+                placeholder="Všechny destinace" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Zpoždění aby šlo kliknout
+                className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder-slate-500"
+             />
+             {/* Rozbalovací menu našeptávače */}
+             {showSuggestions && suggestions.length > 0 && (
+                 <div className="absolute top-full left-0 w-full bg-slate-900 border border-white/10 rounded-xl mt-2 shadow-2xl overflow-hidden z-50">
+                     {suggestions.map((sug, index) => (
+                         <div 
+                            key={index} 
+                            onClick={() => { setSearchTerm(sug); setShowSuggestions(false); }}
+                            className="px-4 py-3 hover:bg-blue-600/20 cursor-pointer text-left text-sm font-bold text-slate-200 border-b border-white/5 last:border-0"
+                         >
+                             ✈️ {sug}
+                         </div>
+                     ))}
+                 </div>
+             )}
+          </div>
+
           <div className="flex-1 px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group cursor-pointer"><label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Odlet</label><div className="w-full"><DatePicker selected={dateFrom} onChange={(date) => setDateFrom(date)} dateFormat="dd. MM. yyyy" locale="cs" placeholderText="Přidat datum" className="bg-transparent text-sm font-bold text-white w-full outline-none cursor-pointer placeholder-slate-500" minDate={new Date()} /></div></div>
           <div className="flex-1 px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group cursor-pointer"><label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Návrat</label><div className="w-full"><DatePicker selected={dateTo} onChange={(date) => setDateTo(date)} dateFormat="dd. MM. yyyy" locale="cs" placeholderText="Přidat datum" className="bg-transparent text-sm font-bold text-white w-full outline-none cursor-pointer placeholder-slate-500" minDate={dateFrom || new Date()} /></div></div>
           <div className="flex-1 px-6 py-2 relative hover:bg-white/5 rounded-full transition flex flex-col justify-center"><label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Cestující</label><div className="flex items-center justify-between"><span className="text-sm font-bold text-white">{searchSeats} {searchSeats === 1 ? 'osoba' : (searchSeats < 5 ? 'osoby' : 'osob')}</span><div className="flex gap-2 relative z-20"><button onClick={() => handleGuestsChange('decrement')} disabled={searchSeats <= 1} className="w-6 h-6 flex items-center justify-center rounded-full border border-slate-500 text-slate-400 hover:border-white hover:text-white disabled:opacity-30">-</button><button onClick={() => handleGuestsChange('increment')} className="w-6 h-6 flex items-center justify-center rounded-full border border-slate-500 text-slate-400 hover:border-white hover:text-white">+</button></div></div></div>
@@ -118,13 +163,7 @@ export default function Home() {
                   <img src={deal.image} className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${deal.seats_left === 0 ? 'grayscale opacity-50' : 'opacity-90 group-hover:opacity-100'}`} />
                   <div className="absolute top-3 left-3 flex flex-col gap-1">
                     <span className="bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">{deal.category || 'Ostatní'}</span>
-                    
-                    {/* === NOVÉ: VYPRODÁNO BADGE === */}
-                    {deal.seats_left === 0 ? (
-                        <span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🚫 VYPRODÁNO</span>
-                    ) : (
-                        deal.total_price < 15000 && <span className="bg-orange-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🔥 Super Cena</span>
-                    )}
+                    {deal.seats_left === 0 ? (<span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🚫 VYPRODÁNO</span>) : (deal.total_price < 15000 && <span className="bg-orange-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🔥 Super Cena</span>)}
                   </div>
                 </div>
                 <div className="p-5 flex-grow flex flex-col">
@@ -134,8 +173,6 @@ export default function Home() {
                   </div>
                   <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-end">
                     <div><p className="text-xs text-slate-500 mb-1">{formatDate(deal.departure_date)}</p><span className="text-2xl font-bold text-green-400">{(deal.total_price || 0).toLocaleString()} Kč</span></div>
-                    
-                    {/* Zobrazit "Poslední místa" jen když není vyprodáno */}
                     {deal.seats_left > 0 && deal.seats_left <= 3 && <div className="text-[10px] font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/20 animate-pulse">Poslední {deal.seats_left} místa!</div>}
                     {deal.seats_left === 0 && <div className="text-[10px] font-bold text-slate-500">Kapacita naplněna</div>}
                   </div>
@@ -148,7 +185,7 @@ export default function Home() {
 
       <section className="mt-20 py-20 bg-blue-900/20 border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
       
-      {/* Vynucení buildu: v3 */}
+      {/* update v4 */}
     </main>
   );
 }

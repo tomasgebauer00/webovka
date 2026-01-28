@@ -15,6 +15,10 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
   const [bookingData, setBookingData] = useState({ name: '', email: '', phone: '', people: 1 });
   const [bookingLoading, setBookingLoading] = useState(false);
 
+  // AI Itinerář stavy
+  const [aiLoading, setAiLoading] = useState(false);
+  const [itinerary, setItinerary] = useState<string[] | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -34,6 +38,21 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     fetchData();
   }, [id]);
 
+  // "Fake" AI Generátor (Simulace inteligence)
+  const generateItinerary = () => {
+    setAiLoading(true);
+    // Simulujeme přemýšlení AI (2 sekundy)
+    setTimeout(() => {
+        const isBeach = deal.category === 'Exotika' || deal.description.toLowerCase().includes('pláž');
+        const activities = isBeach 
+            ? ["Ranní jóga na pláži při východu slunce", "Šnorchlování u korálových útesů", "Oběd v místním plážovém baru (čerstvé ryby)", "Výlet lodí na opuštěný ostrov", "Večerní koktejly a pozorování hvězd"]
+            : ["Prohlídka historického centra s průvodcem", "Návštěva národního muzea a trhů", "Ochutnávka místní street food gastronomie", "Výšlap na vyhlídku nad městem", "Večeře v luxusní restauraci s živou hudbou"];
+        
+        setItinerary(activities);
+        setAiLoading(false);
+    }, 2000);
+  };
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingLoading(true);
@@ -48,27 +67,19 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     if (error) { alert('Chyba při rezervaci: ' + error.message); } 
     else { 
         alert("Rezervace úspěšně odeslána! ✈️ Brzy se ti ozveme.");
-        // Snížení počtu míst (lokálně)
         setDeal({...deal, seats_left: deal.seats_left - bookingData.people});
         setShowBookingForm(false); 
     }
   };
 
-  // Funkce pro sdílení
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const handleShare = (platform: string) => {
-      if (platform === 'copy') {
-          navigator.clipboard.writeText(shareUrl);
-          alert('Odkaz zkopírován! 📋');
-      } else if (platform === 'facebook') {
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank');
-      } else if (platform === 'whatsapp') {
-          window.open(`https://wa.me/?text=${encodeURIComponent(`Koukej na tohle: ${deal.destination} za ${deal.total_price} Kč! ${shareUrl}`)}`, '_blank');
-      }
+      if (platform === 'copy') { navigator.clipboard.writeText(shareUrl); alert('Odkaz zkopírován! 📋'); }
+      else if (platform === 'facebook') { window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank'); }
+      else if (platform === 'whatsapp') { window.open(`https://wa.me/?text=${encodeURIComponent(`Koukej na tohle: ${deal.destination} za ${deal.total_price} Kč! ${shareUrl}`)}`, '_blank'); }
   };
 
   if (!deal) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Načítám...</div>;
-
   const isSoldOut = deal.seats_left <= 0;
 
   return (
@@ -83,8 +94,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap items-center gap-4">
                 <p className="text-xl text-slate-300">{deal.country}</p>
                 {weather && <span className="bg-blue-600/30 text-blue-200 text-sm px-3 py-1 rounded-full border border-blue-500/50">☀️ {weather.temperature}°C</span>}
-                
-                {/* === NOVÉ: SDÍLECÍ TLAČÍTKA === */}
                 <div className="flex gap-2 ml-auto">
                     <button onClick={() => handleShare('facebook')} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full text-xs font-bold transition">FB</button>
                     <button onClick={() => handleShare('whatsapp')} className="bg-green-500 hover:bg-green-400 text-white p-2 rounded-full text-xs font-bold transition">WhatsApp</button>
@@ -100,10 +109,41 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
                 <h3 className="text-2xl font-bold text-white mb-4">O destinaci</h3>
                 <p className="text-slate-400 leading-relaxed text-lg">{deal.description}</p>
             </section>
+
+            {/* NOVÉ: AI ITINERÁŘ */}
+            <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 rounded-2xl border border-purple-500/30 relative overflow-hidden">
+                <div className="relative z-10">
+                    <h3 className="text-2xl font-bold text-white mb-2">✨ AI Průvodce</h3>
+                    <p className="text-slate-400 mb-4">Nevíš, co tam dělat? Nech umělou inteligenci navrhnout program.</p>
+                    
+                    {!itinerary && (
+                        <button 
+                            onClick={generateItinerary} 
+                            disabled={aiLoading}
+                            className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg flex items-center gap-2"
+                        >
+                            {aiLoading ? 'Přemýšlím...' : '🤖 Vygenerovat program'}
+                        </button>
+                    )}
+
+                    {itinerary && (
+                        <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            {itinerary.map((item, i) => (
+                                <div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5">
+                                    <span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span>
+                                    <span className="text-slate-200">{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section>
+
             <section className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-900 p-4 rounded-xl border border-white/5"><span className="text-slate-500 text-sm block">Odlet</span><span className="text-white font-bold">{new Date(deal.departure_date).toLocaleDateString('cs-CZ')}</span></div>
                 <div className="bg-slate-900 p-4 rounded-xl border border-white/5"><span className="text-slate-500 text-sm block">Návrat</span><span className="text-white font-bold">{new Date(deal.return_date).toLocaleDateString('cs-CZ')}</span></div>
             </section>
+            
             <section className="pt-8 border-t border-white/10">
                 <h3 className="text-2xl font-bold text-white mb-6">Recenze cestovatelů ({reviews.length})</h3>
                 {reviews.length === 0 ? (<p className="text-slate-500 italic">Zatím žádné recenze. Buď první!</p>) : (
@@ -116,22 +156,14 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
             <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl sticky top-24 shadow-2xl">
                 <p className="text-sm text-slate-500 mb-1">Cena za osobu</p>
                 <div className="text-4xl font-extrabold text-green-400 mb-6">{deal.total_price.toLocaleString()} Kč</div>
-                
-                {/* === NOVÉ: BLOKACE REZERVACE POKUD JE VYPRODÁNO === */}
                 <button 
                     onClick={() => setShowBookingForm(true)}
                     disabled={isSoldOut}
-                    className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg mb-3 ${
-                        isSoldOut 
-                        ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
-                    }`}
+                    className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg mb-3 ${isSoldOut ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'}`}
                 >
                     {isSoldOut ? '🚫 VYPRODÁNO' : 'Rezervovat hned'}
                 </button>
-                <p className="text-center text-xs text-slate-500">
-                    {isSoldOut ? 'Kapacita bohužel naplněna.' : `Zbývá jen ${deal.seats_left} míst!`}
-                </p>
+                <p className="text-center text-xs text-slate-500">{isSoldOut ? 'Kapacita bohužel naplněna.' : `Zbývá jen ${deal.seats_left} míst!`}</p>
             </div>
         </div>
       </div>
