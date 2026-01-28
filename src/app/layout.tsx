@@ -8,8 +8,11 @@ import LuckyWheel from '../components/LuckyWheel';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TripHack - Cestuj chytře', // <--- ZMĚNĚNO
+  title: 'TripHack - Cestuj chytře',
   description: 'Nejlepší nabídky letenek a dovolených.',
+  icons: {
+    icon: '/icon.png', // <--- Tohle zajistí, že se načte tvoje nové logo z public složky
+  },
 };
 
 export default function RootLayout({
