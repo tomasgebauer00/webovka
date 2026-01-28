@@ -34,7 +34,7 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // NOVÉ: Stavy pro POROVNÁVAČ
+  // Stavy pro POROVNÁVAČ
   const [compareList, setCompareList] = useState<Deal[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
@@ -82,7 +82,7 @@ export default function Home() {
     }
   };
 
-  // NOVÉ: Funkce pro přidání do porovnávače
+  // Funkce pro přidání do porovnávače
   const toggleCompare = (e: React.MouseEvent, deal: Deal) => {
     e.stopPropagation();
     const isInList = compareList.find(d => d.id === deal.id);
@@ -128,6 +128,7 @@ export default function Home() {
       <div className="relative pt-28 pb-8 text-center px-4">
         <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
         
+        {/* Vyhledávací panel */}
         <div className="max-w-6xl mx-auto bg-slate-900 border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
           <div className="flex-[1.5] px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group">
              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Kam?</label>
@@ -141,6 +142,22 @@ export default function Home() {
         </div>
         <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4" /></div>
         {(dateFrom || dateTo || searchSeats > 1 || searchTerm) && (<button onClick={() => { setDateFrom(null); setDateTo(null); setSearchSeats(1); setActiveCategory('all'); setSearchTerm(''); }} className="mt-6 text-sm text-red-400 hover:text-red-300 font-bold underline decoration-red-400/30">Vymazat filtry ✕</button>)}
+        
+        {/* Banner na Tinder Mód */}
+        <div className="max-w-4xl mx-auto mt-8 mb-4 px-4">
+            <div 
+                onClick={() => router.push('/swipe')}
+                className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition shadow-2xl shadow-pink-900/30 border border-white/10 group relative overflow-hidden"
+            >
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="relative z-10">
+                    <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
+                    <p className="text-pink-100">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
+                </div>
+                <div className="relative z-10 bg-white text-pink-600 w-12 h-12 rounded-full flex items-center justify-center font-bold text-2xl group-hover:rotate-12 transition">➜</div>
+            </div>
+        </div>
+
         <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900 text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
       </div>
 
@@ -152,27 +169,18 @@ export default function Home() {
             {filteredDeals.map((deal) => (
               <div key={deal.id} onClick={() => router.push(`/deal/${deal.id}`)} className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 cursor-pointer group relative flex flex-col h-full">
                 
-                {/* Tlačítko Oblíbené */}
                 <button onClick={(e) => toggleFavorite(e, deal.id)} className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 transition group-active:scale-95"><span className={favoriteIds.includes(deal.id) ? "text-red-500 scale-110 inline-block" : "text-white opacity-70"}>{favoriteIds.includes(deal.id) ? '❤️' : '🤍'}</span></button>
                 
-                {/* NOVÉ: Tlačítko Porovnat */}
-                <button 
-                    onClick={(e) => toggleCompare(e, deal)} 
-                    className={`absolute top-3 left-3 z-20 p-2 rounded-full backdrop-blur transition group-active:scale-95 border ${compareList.find(d => d.id === deal.id) ? 'bg-blue-600 text-white border-blue-500' : 'bg-black/40 text-white border-transparent hover:bg-black/60'}`}
-                    title="Porovnat"
-                >
-                    ⚖️
-                </button>
+                <button onClick={(e) => toggleCompare(e, deal)} className={`absolute top-3 left-3 z-20 p-2 rounded-full backdrop-blur transition group-active:scale-95 border ${compareList.find(d => d.id === deal.id) ? 'bg-blue-600 text-white border-blue-500' : 'bg-black/40 text-white border-transparent hover:bg-black/60'}`} title="Porovnat">⚖️</button>
 
                 <div className="h-56 overflow-hidden relative">
                   <img src={deal.image} className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${deal.seats_left === 0 ? 'grayscale opacity-50' : 'opacity-90 group-hover:opacity-100'}`} />
                   <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                     {/* Štítky jsou teď dole, aby nepřekážely tlačítku porovnat */}
-                     <div className="flex flex-col gap-1 items-start">
+                      <div className="flex flex-col gap-1 items-start">
                         <span className="bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">{deal.category || 'Ostatní'}</span>
                         {deal.seats_left === 0 ? (<span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🚫 VYPRODÁNO</span>) : (deal.total_price < 15000 && <span className="bg-orange-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🔥 Super Cena</span>)}
-                     </div>
-                  </div>
+                      </div>
+                   </div>
                 </div>
                 <div className="p-5 flex-grow flex flex-col">
                   <div className="flex justify-between items-start mb-2">
@@ -191,68 +199,38 @@ export default function Home() {
         )}
       </div>
 
-      {/* NOVÉ: PLOVOUCÍ LIŠTA POROVNÁVAČE */}
       {compareList.length > 0 && (
           <div className="fixed bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur-md border-t border-blue-500/30 p-4 z-50 flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-full duration-300">
               <div className="max-w-7xl mx-auto w-full flex justify-between items-center px-4">
                   <div className="flex items-center gap-4">
                       <span className="text-white font-bold hidden md:inline">Porovnání:</span>
                       <div className="flex gap-2">
-                          {compareList.map(item => (
-                              <div key={item.id} className="relative group">
-                                  <img src={item.image} className="w-10 h-10 rounded-full object-cover border-2 border-blue-500" />
-                                  <button onClick={(e) => toggleCompare(e, item)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:scale-110">✕</button>
-                              </div>
-                          ))}
+                          {compareList.map(item => (<div key={item.id} className="relative group"><img src={item.image} className="w-10 h-10 rounded-full object-cover border-2 border-blue-500" /><button onClick={(e) => toggleCompare(e, item)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:scale-110">✕</button></div>))}
                           {compareList.length < 2 && <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500 text-xs">+</div>}
                       </div>
                   </div>
-                  <button 
-                    onClick={() => setShowCompareModal(true)} 
-                    disabled={compareList.length < 2}
-                    className={`px-6 py-2 rounded-full font-bold transition ${compareList.length === 2 ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-                  >
-                      {compareList.length === 2 ? '⚖️ Porovnat' : 'Vyber ještě jednu'}
-                  </button>
+                  <button onClick={() => setShowCompareModal(true)} disabled={compareList.length < 2} className={`px-6 py-2 rounded-full font-bold transition ${compareList.length === 2 ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>{compareList.length === 2 ? '⚖️ Porovnat' : 'Vyber ještě jednu'}</button>
               </div>
           </div>
       )}
 
-      {/* NOVÉ: MODAL POROVNÁNÍ */}
       {showCompareModal && compareList.length === 2 && (
           <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
                   <button onClick={() => setShowCompareModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white text-xl z-10">✕</button>
                   <h2 className="text-2xl font-bold text-center text-white py-6 border-b border-white/10">Porovnání dovolených</h2>
-                  
                   <div className="grid grid-cols-2 divide-x divide-white/10">
                       {compareList.map(deal => (
                           <div key={deal.id} className="p-6 text-center space-y-4">
                               <img src={deal.image} className="w-full h-48 object-cover rounded-xl mb-4" />
                               <h3 className="text-2xl font-bold text-white">{deal.destination}</h3>
                               <p className="text-slate-400">{deal.country}</p>
-                              
                               <div className="bg-slate-950 p-4 rounded-xl border border-white/5 space-y-4">
-                                  <div>
-                                      <p className="text-xs text-slate-500 uppercase font-bold">Cena</p>
-                                      <p className={`text-2xl font-bold ${deal.total_price <= compareList.find(d => d.id !== deal.id)!.total_price ? 'text-green-400' : 'text-white'}`}>
-                                          {deal.total_price.toLocaleString()} Kč
-                                      </p>
-                                  </div>
-                                  <div>
-                                      <p className="text-xs text-slate-500 uppercase font-bold">Hodnocení</p>
-                                      <p className="text-yellow-400 font-bold text-lg">{'★'.repeat(deal.rating)}</p>
-                                  </div>
-                                  <div>
-                                      <p className="text-xs text-slate-500 uppercase font-bold">Kategorie</p>
-                                      <p className="text-white">{deal.category}</p>
-                                  </div>
-                                  <div>
-                                      <p className="text-xs text-slate-500 uppercase font-bold">Volná místa</p>
-                                      <p className={deal.seats_left < 3 ? 'text-red-400 font-bold' : 'text-white'}>{deal.seats_left}</p>
-                                  </div>
+                                  <div><p className="text-xs text-slate-500 uppercase font-bold">Cena</p><p className={`text-2xl font-bold ${deal.total_price <= compareList.find(d => d.id !== deal.id)!.total_price ? 'text-green-400' : 'text-white'}`}>{deal.total_price.toLocaleString()} Kč</p></div>
+                                  <div><p className="text-xs text-slate-500 uppercase font-bold">Hodnocení</p><p className="text-yellow-400 font-bold text-lg">{'★'.repeat(deal.rating)}</p></div>
+                                  <div><p className="text-xs text-slate-500 uppercase font-bold">Kategorie</p><p className="text-white">{deal.category}</p></div>
+                                  <div><p className="text-xs text-slate-500 uppercase font-bold">Volná místa</p><p className={deal.seats_left < 3 ? 'text-red-400 font-bold' : 'text-white'}>{deal.seats_left}</p></div>
                               </div>
-                              
                               <button onClick={() => router.push(`/deal/${deal.id}`)} className="bg-blue-600 hover:bg-blue-500 text-white w-full py-3 rounded-xl font-bold mt-4">Detail</button>
                           </div>
                       ))}
