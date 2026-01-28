@@ -14,10 +14,11 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingData, setBookingData] = useState({ name: '', email: '', phone: '', people: 1 });
   const [bookingLoading, setBookingLoading] = useState(false);
-
-  // AI Itinerář stavy
   const [aiLoading, setAiLoading] = useState(false);
   const [itinerary, setItinerary] = useState<string[] | null>(null);
+  
+  // NOVÉ: Časovač pro FOMO efekt
+  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 23, seconds: 12 });
 
   const router = useRouter();
 
@@ -36,18 +37,26 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
       setReviews(reviewsData || []);
     };
     fetchData();
+
+    // Spuštění odpočtu
+    const timer = setInterval(() => {
+        setTimeLeft(prev => {
+            if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+            if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+            if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+            return prev;
+        });
+    }, 1000);
+    return () => clearInterval(timer);
   }, [id]);
 
-  // "Fake" AI Generátor (Simulace inteligence)
   const generateItinerary = () => {
     setAiLoading(true);
-    // Simulujeme přemýšlení AI (2 sekundy)
     setTimeout(() => {
         const isBeach = deal.category === 'Exotika' || deal.description.toLowerCase().includes('pláž');
         const activities = isBeach 
-            ? ["Ranní jóga na pláži při východu slunce", "Šnorchlování u korálových útesů", "Oběd v místním plážovém baru (čerstvé ryby)", "Výlet lodí na opuštěný ostrov", "Večerní koktejly a pozorování hvězd"]
+            ? ["Ranní jóga na pláži při východu slunce", "Šnorchlování u korálových útesů", "Oběd v místním plážovém baru", "Výlet lodí na opuštěný ostrov", "Večerní koktejly a pozorování hvězd"]
             : ["Prohlídka historického centra s průvodcem", "Návštěva národního muzea a trhů", "Ochutnávka místní street food gastronomie", "Výšlap na vyhlídku nad městem", "Večeře v luxusní restauraci s živou hudbou"];
-        
         setItinerary(activities);
         setAiLoading(false);
     }, 2000);
@@ -58,25 +67,18 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     setBookingLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('bookings').insert([{
-        deal_id: id,
-        user_id: user?.id || null,
-        name: bookingData.name, email: bookingData.email, phone: bookingData.phone, people_count: bookingData.people,
-        total_price: (deal.total_price * bookingData.people)
+        deal_id: id, user_id: user?.id || null, name: bookingData.name, email: bookingData.email, phone: bookingData.phone, people_count: bookingData.people, total_price: (deal.total_price * bookingData.people), status: 'pending'
     }]);
     setBookingLoading(false);
     if (error) { alert('Chyba při rezervaci: ' + error.message); } 
-    else { 
-        alert("Rezervace úspěšně odeslána! ✈️ Brzy se ti ozveme.");
-        setDeal({...deal, seats_left: deal.seats_left - bookingData.people});
-        setShowBookingForm(false); 
-    }
+    else { alert("Rezervace odeslána! ✈️"); setDeal({...deal, seats_left: deal.seats_left - bookingData.people}); setShowBookingForm(false); }
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const handleShare = (platform: string) => {
       if (platform === 'copy') { navigator.clipboard.writeText(shareUrl); alert('Odkaz zkopírován! 📋'); }
       else if (platform === 'facebook') { window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank'); }
-      else if (platform === 'whatsapp') { window.open(`https://wa.me/?text=${encodeURIComponent(`Koukej na tohle: ${deal.destination} za ${deal.total_price} Kč! ${shareUrl}`)}`, '_blank'); }
+      else if (platform === 'whatsapp') { window.open(`https://wa.me/?text=${encodeURIComponent(`Koukej: ${deal?.destination} ${shareUrl}`)}`, '_blank'); }
   };
 
   if (!deal) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Načítám...</div>;
@@ -109,71 +111,46 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
                 <h3 className="text-2xl font-bold text-white mb-4">O destinaci</h3>
                 <p className="text-slate-400 leading-relaxed text-lg">{deal.description}</p>
             </section>
-
-            {/* NOVÉ: AI ITINERÁŘ */}
-            <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 rounded-2xl border border-purple-500/30 relative overflow-hidden">
-                <div className="relative z-10">
-                    <h3 className="text-2xl font-bold text-white mb-2">✨ AI Průvodce</h3>
-                    <p className="text-slate-400 mb-4">Nevíš, co tam dělat? Nech umělou inteligenci navrhnout program.</p>
-                    
-                    {!itinerary && (
-                        <button 
-                            onClick={generateItinerary} 
-                            disabled={aiLoading}
-                            className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg flex items-center gap-2"
-                        >
-                            {aiLoading ? 'Přemýšlím...' : '🤖 Vygenerovat program'}
-                        </button>
-                    )}
-
-                    {itinerary && (
-                        <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            {itinerary.map((item, i) => (
-                                <div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                                    <span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span>
-                                    <span className="text-slate-200">{item}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            <section className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-900 p-4 rounded-xl border border-white/5"><span className="text-slate-500 text-sm block">Odlet</span><span className="text-white font-bold">{new Date(deal.departure_date).toLocaleDateString('cs-CZ')}</span></div>
-                <div className="bg-slate-900 p-4 rounded-xl border border-white/5"><span className="text-slate-500 text-sm block">Návrat</span><span className="text-white font-bold">{new Date(deal.return_date).toLocaleDateString('cs-CZ')}</span></div>
-            </section>
             
+            <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 rounded-2xl border border-purple-500/30">
+                <h3 className="text-2xl font-bold text-white mb-2">✨ AI Průvodce</h3>
+                <p className="text-slate-400 mb-4">Nevíš, co tam dělat? Nech umělou inteligenci navrhnout program.</p>
+                {!itinerary && <button onClick={generateItinerary} disabled={aiLoading} className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg">{aiLoading ? 'Generuji...' : '🤖 Vygenerovat program'}</button>}
+                {itinerary && <div className="mt-4 space-y-3">{itinerary.map((item, i) => (<div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5"><span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span><span className="text-slate-200">{item}</span></div>))}</div>}
+            </section>
+
             <section className="pt-8 border-t border-white/10">
-                <h3 className="text-2xl font-bold text-white mb-6">Recenze cestovatelů ({reviews.length})</h3>
-                {reviews.length === 0 ? (<p className="text-slate-500 italic">Zatím žádné recenze. Buď první!</p>) : (
-                    <div className="space-y-4">{reviews.map(rev => (<div key={rev.id} className="bg-slate-900 p-4 rounded-xl border border-white/5"><div className="flex justify-between mb-2"><span className="font-bold text-white">{rev.user_name || 'Cestovatel'}</span><span className="text-yellow-400 text-sm">{'★'.repeat(rev.rating)}</span></div><p className="text-slate-400">{rev.comment}</p></div>))}</div>
-                )}
+                <h3 className="text-2xl font-bold text-white mb-6">Recenze ({reviews.length})</h3>
+                {reviews.length === 0 ? <p className="text-slate-500 italic">Zatím žádné recenze.</p> : reviews.map(rev => (<div key={rev.id} className="bg-slate-900 p-4 rounded-xl border border-white/5 mb-4"><div className="flex justify-between mb-2"><span className="font-bold text-white">{rev.user_name}</span><span className="text-yellow-400 text-sm">{'★'.repeat(rev.rating)}</span></div><p className="text-slate-400">{rev.comment}</p></div>))}
             </section>
         </div>
 
         <div className="space-y-6">
             <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl sticky top-24 shadow-2xl">
+                {/* NOVÉ: FOMO Odpočet */}
+                {!isSoldOut && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 flex justify-between items-center animate-pulse">
+                        <span className="text-red-400 text-xs font-bold uppercase">Akce končí za:</span>
+                        <span className="text-white font-mono font-bold">
+                            {String(timeLeft.hours).padStart(2,'0')}:{String(timeLeft.minutes).padStart(2,'0')}:{String(timeLeft.seconds).padStart(2,'0')}
+                        </span>
+                    </div>
+                )}
+                
                 <p className="text-sm text-slate-500 mb-1">Cena za osobu</p>
                 <div className="text-4xl font-extrabold text-green-400 mb-6">{deal.total_price.toLocaleString()} Kč</div>
-                <button 
-                    onClick={() => setShowBookingForm(true)}
-                    disabled={isSoldOut}
-                    className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg mb-3 ${isSoldOut ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'}`}
-                >
-                    {isSoldOut ? '🚫 VYPRODÁNO' : 'Rezervovat hned'}
-                </button>
-                <p className="text-center text-xs text-slate-500">{isSoldOut ? 'Kapacita bohužel naplněna.' : `Zbývá jen ${deal.seats_left} míst!`}</p>
+                <button onClick={() => setShowBookingForm(true)} disabled={isSoldOut} className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg mb-3 ${isSoldOut ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'}`}>{isSoldOut ? '🚫 VYPRODÁNO' : 'Rezervovat hned'}</button>
+                <p className="text-center text-xs text-slate-500">{isSoldOut ? 'Kapacita naplněna.' : `Zbývá jen ${deal.seats_left} míst!`}</p>
             </div>
         </div>
       </div>
-
+      
       {showBookingForm && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowBookingForm(false)}>
              <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={e => e.stopPropagation()}>
                  <button onClick={() => setShowBookingForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white text-xl">✕</button>
-                 <h2 className="text-2xl font-bold text-white mb-2">Nezávazná rezervace</h2>
-                 <form onSubmit={handleBooking} className="space-y-4 mt-6">
+                 <h2 className="text-2xl font-bold text-white mb-6">Nezávazná rezervace</h2>
+                 <form onSubmit={handleBooking} className="space-y-4">
                      <input type="text" placeholder="Jméno" required className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-white outline-none" value={bookingData.name} onChange={e => setBookingData({...bookingData, name: e.target.value})} />
                      <input type="email" placeholder="E-mail" required className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-white outline-none" value={bookingData.email} onChange={e => setBookingData({...bookingData, email: e.target.value})} />
                      <input type="tel" placeholder="Telefon" required className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-white outline-none" value={bookingData.phone} onChange={e => setBookingData({...bookingData, phone: e.target.value})} />

@@ -1,19 +1,26 @@
-import type { Metadata } from "next";
-import "./globals.css"; // TOTO JE TEN NEJDŮLEŽITĚJŠÍ ŘÁDEK
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import Footer from '../components/Footer'; // <--- IMPORTOVAT
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Lovci Dovolené",
-  description: "Nejlevnější letenky a ubytování",
+  title: 'LovciDovolené - Cestuj levně',
+  description: 'Nejlepší nabídky letenek a dovolených.',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="cs">
-      <body>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <Footer /> {/* <--- PŘIDAT SEM DOLŮ */}
+      </body>
     </html>
   );
 }
