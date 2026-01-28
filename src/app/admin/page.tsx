@@ -48,7 +48,8 @@ export default function AdminPage() {
     const { data: profiles } = await supabase.from('profiles').select('*');
     if(profiles) {
         setUsers(profiles);
-        updateStats(bookings, profiles); // Přepočítat statistiky
+        // Přepočítat statistiky (až máme data)
+        setStats(prev => ({ ...prev, totalUsers: profiles.length }));
     }
   };
   
@@ -56,18 +57,9 @@ export default function AdminPage() {
     const { data } = await supabase.from('bookings').select('*, deals(destination)').order('created_at', { ascending: false });
     if (data) {
         setBookings(data);
-        updateStats(data, users); // Přepočítat statistiky
+        const totalRevenue = data.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        setStats(prev => ({ ...prev, revenue: totalRevenue, totalBookings: data.length }));
     }
-  };
-
-  // Funkce na výpočet statistik
-  const updateStats = (currentBookings: any[], currentUsers: any[]) => {
-      const totalRevenue = currentBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-      setStats({
-          revenue: totalRevenue,
-          totalBookings: currentBookings.length,
-          totalUsers: currentUsers.length
-      });
   };
 
   const handleImageUpload = async (e: any) => {
@@ -98,6 +90,27 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Funkce na mazání (přidána zpět)
+  const handleDelete = async (id: number) => {
+    if (confirm('Opravdu smazat tento zájezd?')) {
+      await supabase.from('deals').delete().eq('id', id);
+      fetchDeals();
+    }
+  };
+
+  // Funkce na změnu admina (přidána zpět)
+  const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
+    const confirmMessage = currentStatus 
+        ? "Opravdu chceš tomuto uživateli ODEBRAT práva admina?" 
+        : "Opravdu chceš z tohoto uživatele UDĚLAT admina? Bude mít plný přístup.";
+    
+    if (!confirm(confirmMessage)) return;
+
+    const { error } = await supabase.from('profiles').update({ is_admin: !currentStatus }).eq('id', userId);
+    if (error) alert("Chyba: " + error.message);
+    else fetchUsers();
+  };
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
@@ -122,7 +135,7 @@ export default function AdminPage() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Admin Centrum 🛠️</h1>
 
-        {/* === NOVÉ: MONEY DASHBOARD === */}
+        {/* === MONEY DASHBOARD === */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-gradient-to-br from-green-600/20 to-green-900/20 border border-green-500/30 p-6 rounded-2xl">
                 <p className="text-green-400 text-sm font-bold uppercase tracking-wider mb-1">Celkové tržby</p>
@@ -172,7 +185,10 @@ export default function AdminPage() {
                 {deals.map(deal => (
                     <div key={deal.id} className="bg-slate-900 border border-white/5 p-4 rounded-xl flex justify-between items-center">
                         <div className="flex gap-4 items-center"><img src={deal.image} className="w-12 h-12 rounded object-cover" /><h3 className="font-bold">{deal.destination}</h3></div>
-                        <button onClick={() => handleEdit(deal)} className="text-yellow-500">✏️</button>
+                        <div className="flex gap-2">
+                             <button onClick={() => handleEdit(deal)} className="text-yellow-500 bg-yellow-500/10 p-2 rounded">✏️</button>
+                             <button onClick={() => handleDelete(deal.id)} className="text-red-500 bg-red-500/10 p-2 rounded">🗑️</button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -181,7 +197,7 @@ export default function AdminPage() {
 
         {activeTab === 'bookings' && (
             <div className="space-y-4">
-                {bookings.map(b => (
+                {bookings.length === 0 ? <p className="text-slate-500 italic">Zatím žádné objednávky.</p> : bookings.map(b => (
                     <div key={b.id} className="bg-slate-900 p-4 rounded-xl border border-white/10 flex justify-between items-center">
                         <div><h3 className="font-bold text-green-400">{b.deals?.destination}</h3><p className="text-sm text-slate-300">{b.name} ({b.email})</p></div>
                         <span className="bg-blue-900 text-blue-300 px-3 py-1 rounded text-xs uppercase">{b.status}</span>
@@ -189,7 +205,46 @@ export default function AdminPage() {
                 ))}
             </div>
         )}
-        {activeTab === 'users' && <div className="text-slate-500">Seznam uživatelů...</div>}
+
+        {/* === OPRAVENÁ ZÁLOŽKA UŽIVATELÉ === */}
+        {activeTab === 'users' && (
+          <div className="grid gap-4">
+            {users.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 border border-dashed border-white/10 rounded-xl">
+                    Zatím tu nejsou žádní uživatelé.
+                </div>
+            ) : (
+                users.map(user => (
+                  <div key={user.id} className={`border p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 transition ${user.is_admin ? 'bg-slate-900/80 border-purple-500/50 shadow-lg shadow-purple-900/10' : 'bg-slate-900 border-white/5'}`}>
+                    
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${user.is_admin ? 'bg-purple-600' : 'bg-slate-700'}`}>
+                            {user.email?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                {user.email}
+                                {user.is_admin && <span className="bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>}
+                            </h3>
+                            <p className="text-xs text-slate-500">ID: {user.id.slice(0, 8)}...</p>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                            user.is_admin 
+                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20' 
+                            : 'bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/20'
+                        }`}
+                    >
+                        {user.is_admin ? 'Odebrat Admina' : 'Udělat Adminem'}
+                    </button>
+                  </div>
+                ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
