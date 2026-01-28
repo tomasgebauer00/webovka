@@ -9,11 +9,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
         {/* Sloupec 1: O nás */}
         <div>
+          {/* === ZMĚNA LOGA ZDE === */}
           <div className="text-2xl font-bold text-white tracking-tighter mb-4 cursor-pointer" onClick={() => router.push('/')}>
-            Lovci<span className="text-blue-500">Dovolené</span>
+            Trip<span className="text-blue-500">Hack</span>
           </div>
           <p className="leading-relaxed mb-4">
-            Jsme komunita cestovatelů, kteří loví ty největší chyby v letenkách a last-minute nabídky. Cestuj levně, žij naplno.
+            Jsme komunita cestovatelů, kteří loví ty největší chyby v letenkách a last-minute nabídky. Cestuj chytře, žij naplno.
           </p>
           <div className="flex gap-4">
              <span className="cursor-pointer hover:text-white transition">📸 Instagram</span>
@@ -49,14 +50,15 @@ export default function Footer() {
           <h3 className="text-white font-bold uppercase tracking-wider mb-4">Kontakt</h3>
           <ul className="space-y-2">
             <li>📍 Praha, Česká republika</li>
-            <li>📧 info@lovcidovolene.cz</li>
+            <li>📧 info@triphack.cz</li> {/* Změnil jsem i email */}
             <li>📞 +420 123 456 789</li>
           </ul>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p>&copy; 2026 LovciDovolené. Všechna práva vyhrazena.</p>
+        {/* === ZMĚNA COPYRIGHTU ZDE === */}
+        <p>&copy; 2026 TripHack. Všechna práva vyhrazena.</p>
         <div className="flex gap-4 grayscale opacity-50">
             <span>💳 Visa</span>
             <span>💳 Mastercard</span>
