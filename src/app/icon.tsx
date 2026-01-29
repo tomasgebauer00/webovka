@@ -1,40 +1,40 @@
 import { ImageResponse } from 'next/og';
 
-// Rozměry ikonky
+// Parametry ikony - velikost a typ
 export const size = {
   width: 32,
   height: 32,
 };
 export const contentType = 'image/png';
 
-// Generování
+// Funkce, která "nakreslí" ikonu
 export default function Icon() {
   return new ImageResponse(
     (
       <div
         style={{
-          fontSize: 20,
+          // Nastavení černého kruhu
           background: 'black',
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
-          borderRadius: '50%', // Tohle ořízne rohy do kruhu
+          borderRadius: '50%', // Dokonalý kruh
+          padding: '4px', // Malý odstup, aby letadlo nebylo nalepené na kraji
         }}
       >
-        {/* Masivní SVG Letadlo (Solid) */}
+        {/* SVG kód pro MASIVNÍ BÍLÉ LETADLO */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          fill="currentColor"
-          width="20"
-          height="20"
-          style={{ transform: 'rotate(-45deg)', marginLeft: '2px', marginTop: '2px' }}
+          fill="white" // Bílá výplň
+          width="100%" // Roztáhnout na maximum
+          height="100%"
+          style={{ transform: 'rotate(-45deg)' }} // Natočení nahoru
         >
-           <path d="M22 2L11 13" />
-           <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+          {/* Tento tvar je to plné, tlusté letadlo */}
+          <path d="M21,16V14L13,9V3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5V9L2,14V16L10,13.5V19L8,20.5V22L11.5,21L15,22V20.5L13,19V13.5L21,16Z" />
         </svg>
       </div>
     ),
