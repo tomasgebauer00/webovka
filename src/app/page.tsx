@@ -42,6 +42,7 @@ export default function Home() {
   const [dateTo, setDateTo] = useState<Date | null>(null);          
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // <--- NOVÉ: Ukládání chyby
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -58,15 +59,33 @@ export default function Home() {
   }, [searchTerm, deals]);
 
   const fetchData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
-    const { data: dealsData } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
-    setDeals(dealsData || []);
-    if (user) {
-      const { data: favData } = await supabase.from('favorites').select('deal_id').eq('user_id', user.id);
-      if (favData) setFavoriteIds(favData.map((f: any) => f.deal_id));
+    try {
+        setLoading(true);
+        setErrorMsg(null);
+        
+        // 1. Zkontrolujeme, jestli máme klíče (jen pro debug)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        if (!supabaseUrl) throw new Error("Chybí Supabase URL! Zkontroluj Environment Variables na Vercelu.");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+        
+        // 2. Načtení dat
+        const { data: dealsData, error: dbError } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
+        
+        if (dbError) throw new Error(dbError.message); // Pokud databáze vrátí chybu
+        
+        setDeals(dealsData || []);
+        if (user) {
+          const { data: favData } = await supabase.from('favorites').select('deal_id').eq('user_id', user.id);
+          if (favData) setFavoriteIds(favData.map((f: any) => f.deal_id));
+        }
+    } catch (err: any) {
+        console.error("CHYBA:", err);
+        setErrorMsg(err.message || "Neznámá chyba při načítání.");
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   };
 
   const toggleFavorite = async (e: React.MouseEvent, dealId: number) => {
@@ -82,7 +101,6 @@ export default function Home() {
     }
   };
 
-  // Funkce pro přidání do porovnávače
   const toggleCompare = (e: React.MouseEvent, deal: Deal) => {
     e.stopPropagation();
     const isInList = compareList.find(d => d.id === deal.id);
@@ -164,7 +182,21 @@ export default function Home() {
       <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4"><DealMap deals={filteredDeals} /></div>
 
       <div className="max-w-7xl mx-auto px-6 mt-8">
-        {loading ? (<div className="text-center py-20 text-slate-500 animate-pulse">Načítám destinace...</div>) : filteredDeals.length === 0 ? (<div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-white/5 border-dashed"><p className="text-xl text-slate-500">Nic jsme nenašli 🕵️‍♂️</p></div>) : (
+        {/* === TADY SE ZOBRAZUJE CHYBA === */}
+        {errorMsg ? (
+            <div className="text-center py-20 bg-red-900/20 rounded-2xl border border-red-500/50">
+                <h2 className="text-3xl text-red-500 font-bold mb-2">⚠️ CHYBA PŘIPOJENÍ</h2>
+                <p className="text-red-200 text-lg mb-4">{errorMsg}</p>
+                <p className="text-slate-400 text-sm">Zkontroluj Vercel Environment Variables a udělej Redeploy.</p>
+            </div>
+        ) : loading ? (
+            <div className="text-center py-20 text-slate-500 animate-pulse">
+                <p className="text-2xl font-bold">Načítám destinace...</p>
+                <p className="text-sm mt-2">Pokud to trvá dlouho, asi chybí klíče k databázi.</p>
+            </div>
+        ) : filteredDeals.length === 0 ? (
+            <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-white/5 border-dashed"><p className="text-xl text-slate-500">Nic jsme nenašli 🕵️‍♂️</p></div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredDeals.map((deal) => (
               <div key={deal.id} onClick={() => router.push(`/deal/${deal.id}`)} className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 cursor-pointer group relative flex flex-col h-full">
