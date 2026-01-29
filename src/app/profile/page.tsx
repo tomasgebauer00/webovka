@@ -1,71 +1,158 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import Navbar from '../../components/Navbar';
 import { useRouter } from 'next/navigation';
+import Navbar from '../../components/Navbar';
 
-export default function ProfilePage() {
+export default function Profile() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [stats, setStats] = useState({ countries: 0, moneySaved: 0, level: 'Gaučák 🛋️' });
+  const [visitedCountries, setVisitedCountries] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       setUser(user);
-      const { data: bookingsData } = await supabase.from('bookings').select('*, deals(*)').eq('user_id', user.id).order('created_at', { ascending: false });
-      setBookings(bookingsData || []);
-      const { data: favData } = await supabase.from('favorites').select('*, deals(*)').eq('user_id', user.id);
-      setFavorites(favData || []);
+
+      // Načíst historii cest
+      const { data: myBookings } = await supabase
+        .from('bookings')
+        .select('*, deals(destination, country, original_price, total_price)')
+        .eq('email', user.email); // Propojujeme přes email, ideálně přes user_id pokud ho ukládáš
+
+      if (myBookings) {
+        setBookings(myBookings);
+        
+        // Vypočítat statistiky
+        const countriesSet = new Set(myBookings.map((b: any) => b.deals?.country).filter(Boolean));
+        const uniqueCountries = Array.from(countriesSet) as string[];
+        setVisitedCountries(uniqueCountries);
+        
+        const saved = myBookings.reduce((acc, b: any) => {
+            const orig = b.deals?.original_price || b.deals?.total_price * 1.2; // Odhad slevy pokud není original
+            return acc + (orig - b.deals?.total_price);
+        }, 0);
+
+        // Určení Levelu
+        let lvl = 'Začátečník 🎒';
+        if (uniqueCountries.length > 2) lvl = 'Průzkumník 🧭';
+        if (uniqueCountries.length > 5) lvl = 'Světoběžník 🌍';
+        if (uniqueCountries.length > 10) lvl = 'Legenda 👑';
+
+        setStats({
+            countries: uniqueCountries.length,
+            moneySaved: Math.round(saved),
+            level: lvl
+        });
+      }
       setLoading(false);
     };
-    fetchData();
-  }, []);
+    getData();
+  }, [router]);
 
   if (loading) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Načítám profil...</div>;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-200">
+    <div className="min-h-screen bg-slate-950 text-slate-200">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-6 pt-24 pb-12">
-        <div className="flex items-center gap-6 mb-12 border-b border-white/10 pb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-2xl">{user.email.charAt(0).toUpperCase()}</div>
-            <div><h1 className="text-3xl font-bold text-white">Můj cestovatelský profil</h1><p className="text-slate-400">{user.email}</p></div>
+      <div className="max-w-4xl mx-auto pt-28 px-6 pb-20">
+        
+        {/* HLAVIČKA PROFILU */}
+        <div className="flex flex-col md:flex-row items-center gap-6 mb-12">
+            <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-2xl">
+                {user.email[0].toUpperCase()}
+            </div>
+            <div className="text-center md:text-left">
+                <h1 className="text-3xl font-bold text-white">{user.email}</h1>
+                <p className="text-blue-400 font-bold mt-1">{stats.level}</p>
+                <p className="text-slate-500 text-sm">Členem TripHack rodiny</p>
+            </div>
         </div>
 
-        <div className="grid gap-12">
-            <section>
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">🎫 Moje rezervace <span className="text-sm bg-blue-900 text-blue-300 px-2 py-1 rounded-full">{bookings.length}</span></h2>
-                {bookings.length === 0 ? (
-                    <div className="bg-slate-900/50 p-8 rounded-2xl border border-white/5 text-center"><p className="text-slate-400 mb-4">Zatím nemáš žádné naplánované cesty.</p><button onClick={() => router.push('/')} className="text-blue-400 hover:text-white font-bold underline">Vybrat dovolenou →</button></div>
-                ) : (
-                    <div className="space-y-4">
-                        {bookings.map((booking) => (
-                            <div key={booking.id} className="bg-slate-900 border border-white/10 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 hover:border-blue-500/30 transition">
-                                <div className="flex gap-4 items-center w-full"><img src={booking.deals?.image} className="w-16 h-16 rounded-lg object-cover bg-slate-800" /><div><h3 className="font-bold text-xl text-white">{booking.deals?.destination}</h3><p className="text-sm text-slate-400">{booking.people_count} os. • {new Date(booking.created_at).toLocaleDateString('cs-CZ')}</p></div></div>
-                                <div className="flex items-center gap-6 w-full md:w-auto justify-between">
-                                    <div className="text-right"><p className="text-xs text-slate-500 uppercase font-bold">Cena celkem</p><p className="text-lg font-bold text-green-400">{booking.total_price?.toLocaleString()} Kč</p></div>
-                                    
-                                    {/* NOVÉ: Zobrazení stavu (Barvičky) */}
-                                    <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                        booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : 
-                                        (booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/10 text-yellow-500')
-                                    }`}>
-                                        {booking.status === 'confirmed' ? 'Potvrzeno' : (booking.status === 'cancelled' ? 'Zrušeno' : 'Čeká se')}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
-            
-            <section><h2 className="text-2xl font-bold text-white mb-6">❤️ Uložené sny</h2><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{favorites.map((fav) => (<div key={fav.id} onClick={() => router.push(`/deal/${fav.deal_id}`)} className="bg-slate-900 p-4 rounded-xl border border-white/5 flex gap-4 cursor-pointer hover:bg-slate-800 transition group"><img src={fav.deals?.image} className="w-20 h-20 rounded-lg object-cover" /><div><h3 className="font-bold text-white group-hover:text-blue-400 transition">{fav.deals?.destination}</h3><p className="text-sm text-slate-400">{fav.deals?.country}</p><p className="text-green-400 font-bold mt-1">{fav.deals?.total_price.toLocaleString()} Kč</p></div></div>))}</div></section>
+        {/* STATISTIKY (Stírací mapa v číslech) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+            <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl text-center relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                <div className="text-4xl mb-2">🌍</div>
+                <h3 className="text-slate-400 text-sm uppercase font-bold">Navštívené země</h3>
+                <p className="text-3xl font-extrabold text-white mt-2">{stats.countries}</p>
+            </div>
+            <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
+                <div className="text-4xl mb-2">💸</div>
+                <h3 className="text-slate-400 text-sm uppercase font-bold">Ušetřeno s námi</h3>
+                <p className="text-3xl font-extrabold text-green-400 mt-2">{stats.moneySaved.toLocaleString()} Kč</p>
+            </div>
+            <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+                <div className="text-4xl mb-2">✈️</div>
+                <h3 className="text-slate-400 text-sm uppercase font-bold">Počet cest</h3>
+                <p className="text-3xl font-extrabold text-white mt-2">{bookings.length}</p>
+            </div>
         </div>
+
+        {/* MOJE CESTOVATELSKÁ MAPA (Seznam zemí) */}
+        <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 mb-12">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">📍 Moje Cestovatelská Mapa</h2>
+            
+            {visitedCountries.length > 0 ? (
+                <div className="flex flex-wrap gap-3">
+                    {visitedCountries.map((country, index) => (
+                        <span key={index} className="bg-blue-900/30 border border-blue-500/30 text-blue-200 px-4 py-2 rounded-full font-bold flex items-center gap-2">
+                            ✅ {country}
+                        </span>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-10 border-2 border-dashed border-white/5 rounded-xl">
+                    <p className="text-slate-500 mb-4">Zatím jsi nikde nebyl... To musíme napravit! ✈️</p>
+                    <button onClick={() => router.push('/')} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full font-bold transition">
+                        Vybrat první dobrodružství
+                    </button>
+                </div>
+            )}
+            
+            {/* Progress Bar do dalšího levelu */}
+            <div className="mt-8">
+                <div className="flex justify-between text-xs text-slate-400 mb-2 uppercase font-bold">
+                    <span>Tvůj progress</span>
+                    <span>Další level: {stats.countries < 3 ? 'Průzkumník (3 země)' : (stats.countries < 6 ? 'Světoběžník (6 zemí)' : 'Legenda')}</span>
+                </div>
+                <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                        style={{ width: `${Math.min(stats.countries * 10, 100)}%` }}
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        {/* HISTORIE REZERVACÍ */}
+        <h2 className="text-2xl font-bold text-white mb-6">📜 Historie rezervací</h2>
+        <div className="space-y-4">
+            {bookings.length === 0 ? (
+                 <p className="text-slate-500">Zatím žádné rezervace.</p>
+            ) : bookings.map((booking) => (
+                <div key={booking.id} className="bg-slate-900 border border-white/10 p-4 rounded-xl flex justify-between items-center hover:border-white/20 transition">
+                    <div>
+                        <h3 className="font-bold text-white text-lg">{booking.deals?.destination}</h3>
+                        <p className="text-sm text-slate-400">{booking.deals?.country} • {new Date(booking.created_at).toLocaleDateString('cs-CZ')}</p>
+                    </div>
+                    <div className="text-right">
+                        <span className={`px-3 py-1 rounded text-xs uppercase font-bold ${booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                            {booking.status === 'confirmed' ? 'Potvrzeno' : 'Čeká se'}
+                        </span>
+                        <p className="font-bold text-white mt-1">{booking.total_price} Kč</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+
       </div>
-    </main>
+    </div>
   );
 }

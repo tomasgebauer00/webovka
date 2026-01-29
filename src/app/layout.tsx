@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import Footer from '../components/Footer';
 import SocialProof from '../components/SocialProof';
 import LuckyWheel from '../components/LuckyWheel';
+import AiChat from '../components/AiChat'; // <--- TADY JSEM PŘIDAL IMPORT
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         {children}
         <SocialProof />
         <LuckyWheel />
+        <AiChat /> {/* <--- TADY JSEM VLOŽIL CHATBOTA */}
         <Footer />
       </body>
     </html>
