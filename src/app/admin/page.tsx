@@ -15,11 +15,14 @@ export default function AdminPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [stats, setStats] = useState({ revenue: 0, totalBookings: 0, totalUsers: 0 });
 
+  // PŘIDÁNO: original_price a is_special_offer
   const [formData, setFormData] = useState<any>({
     destination: '', country: '', image: '', from_city: 'Praha',
     departure_date: '', return_date: '', flight_price: 0, hotel_price: 0,
+    original_price: 0, is_special_offer: false, // <--- NOVÉ
     rating: 5, description: '', category: 'Evropa', tags: '', seats_left: 4, latitude: 0, longitude: 0
   });
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -54,11 +57,10 @@ export default function AdminPage() {
     }
   };
 
-  // NOVÉ: Změna stavu objednávky
   const handleBookingStatus = async (id: number, status: string) => {
       const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
       if (error) alert("Chyba: " + error.message);
-      else fetchBookings(); // Obnovit seznam
+      else fetchBookings();
   };
 
   const handleImageUpload = async (e: any) => {
@@ -75,29 +77,55 @@ export default function AdminPage() {
     } catch (error: any) { alert('Chyba: ' + error.message); } finally { setUploading(false); }
   };
 
-  const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Upravený handler pro checkbox
+  const handleChange = (e: any) => {
+      const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      setFormData({ ...formData, [e.target.name]: value });
+  };
+
   const handleEdit = (deal: any) => {
     setEditingId(deal.id);
-    setFormData({ ...deal, departure_date: deal.departure_date?.slice(0, 16), return_date: deal.return_date?.slice(0, 16), tags: deal.tags ? deal.tags.join(', ') : '' });
+    setFormData({ 
+        ...deal, 
+        departure_date: deal.departure_date?.slice(0, 16), 
+        return_date: deal.return_date?.slice(0, 16), 
+        tags: deal.tags ? deal.tags.join(', ') : '',
+        // Ujistíme se, že hodnoty nejsou null
+        original_price: deal.original_price || 0,
+        is_special_offer: deal.is_special_offer || false
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
   const handleDelete = async (id: number) => {
     if (confirm('Smazat?')) { await supabase.from('deals').delete().eq('id', id); fetchDeals(); }
   };
+
   const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
     if (!confirm(currentStatus ? "Odebrat admina?" : "Udělat adminem?")) return;
     await supabase.from('profiles').update({ is_admin: !currentStatus }).eq('id', userId);
     fetchUsers();
   };
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     const total = Number(formData.flight_price) + Number(formData.hotel_price);
     const tagsArray = formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t);
+    
+    // Payload včetně nových polí
     const payload = { ...formData, total_price: total, tags: tagsArray };
+    
     if (editingId) await supabase.from('deals').update(payload).eq('id', editingId);
     else await supabase.from('deals').insert([payload]);
-    setFormData({ destination: '', country: '', image: '', from_city: 'Praha', flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0 });
+    
+    // Reset formuláře
+    setFormData({ 
+        destination: '', country: '', image: '', from_city: 'Praha', 
+        flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
+        description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0,
+        original_price: 0, is_special_offer: false // Reset nových polí
+    });
     setEditingId(null); fetchDeals(); setLoading(false); alert('Uloženo! ✅');
   };
 
@@ -124,20 +152,78 @@ export default function AdminPage() {
             <div className="bg-slate-900 p-6 rounded-2xl border border-white/10 h-fit">
               <h2 className="text-xl font-bold mb-4">{editingId ? '✏️ Upravit' : '➕ Přidat'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
+                
+                {/* 1. SEKCE: AKČNÍ NABÍDKA */}
+                <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3">
+                    <input 
+                        type="checkbox" 
+                        name="is_special_offer" 
+                        id="is_special_offer"
+                        checked={formData.is_special_offer} 
+                        onChange={handleChange} 
+                        className="w-5 h-5 accent-blue-500 cursor-pointer" 
+                    />
+                    <label htmlFor="is_special_offer" className="font-bold text-white cursor-pointer select-none">
+                        ⚡ Akční nabídka (zobrazit nahoře)
+                    </label>
+                </div>
+
                 <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-slate-950 border border-white/10 rounded p-2 text-white"><option value="Evropa">🇪🇺 Evropa</option><option value="Exotika">🏝️ Exotika</option><option value="Česko">🇨🇿 Česko</option><option value="Letenky">✈️ Jen letenky</option><option value="Last Minute">🔥 Last Minute</option></select>
                 <input name="destination" value={formData.destination} onChange={handleChange} placeholder="Destinace" className="w-full bg-slate-950 border border-white/10 rounded p-2" required />
                 <input name="country" value={formData.country} onChange={handleChange} placeholder="Země" className="w-full bg-slate-950 border border-white/10 rounded p-2" required />
                 <div className="border border-dashed border-white/20 p-4 rounded text-center"><p className="text-xs text-slate-400 mb-2">Nahrát obrázek</p><input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="text-xs text-slate-500"/>{formData.image && <img src={formData.image} className="mt-2 h-20 w-full object-cover rounded" />}</div>
-                <div className="grid grid-cols-2 gap-2"><input type="number" name="flight_price" value={formData.flight_price} onChange={handleChange} placeholder="Letenka" className="bg-slate-950 border border-white/10 rounded p-2" /><input type="number" name="hotel_price" value={formData.hotel_price} onChange={handleChange} placeholder="Hotel" className="bg-slate-950 border border-white/10 rounded p-2" /></div>
+                
+                {/* 2. SEKCE: CENY A SLEVY */}
+                <div className="bg-slate-950 p-3 rounded border border-white/5 space-y-2">
+                    <p className="text-xs text-slate-400 font-bold uppercase">Nastavení ceny</p>
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-slate-500">Původní cena (pro výpočet slevy)</label>
+                        <input type="number" name="original_price" value={formData.original_price} onChange={handleChange} placeholder="Např. 30000" className="bg-slate-800 border border-white/10 rounded p-2 text-red-300" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="text-[10px] text-slate-500">Letenka</label>
+                            <input type="number" name="flight_price" value={formData.flight_price} onChange={handleChange} placeholder="Letenka" className="w-full bg-slate-800 border border-white/10 rounded p-2" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-slate-500">Hotel</label>
+                            <input type="number" name="hotel_price" value={formData.hotel_price} onChange={handleChange} placeholder="Hotel" className="w-full bg-slate-800 border border-white/10 rounded p-2" />
+                        </div>
+                    </div>
+                    <div className="text-right text-xs text-green-400 font-bold">
+                        Celkem: {(Number(formData.flight_price) + Number(formData.hotel_price)).toLocaleString()} Kč
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2"><input type="datetime-local" name="departure_date" value={formData.departure_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /><input type="datetime-local" name="return_date" value={formData.return_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /></div>
                 <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Popis..." className="w-full bg-slate-950 border border-white/10 rounded p-2"></textarea>
                 <div className="grid grid-cols-2 gap-2"><input type="number" name="seats_left" value={formData.seats_left} onChange={handleChange} placeholder="Počet míst" className="bg-slate-950 border border-white/10 rounded p-2" /><input name="tags" value={formData.tags} onChange={handleChange} placeholder="Tagy" className="bg-slate-950 border border-white/10 rounded p-2" /></div>
                 <div className="grid grid-cols-2 gap-2"><input type="number" step="any" name="latitude" value={formData.latitude} onChange={handleChange} placeholder="Lat" className="bg-slate-950 border border-white/10 rounded p-2" /><input type="number" step="any" name="longitude" value={formData.longitude} onChange={handleChange} placeholder="Lon" className="bg-slate-950 border border-white/10 rounded p-2" /></div>
-                <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-3 rounded-xl font-bold">Uložit</button>
+                <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition">Uložit Zájezd</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-4">
-                {deals.map(deal => (<div key={deal.id} className="bg-slate-900 border border-white/5 p-4 rounded-xl flex justify-between items-center"><div className="flex gap-4 items-center"><img src={deal.image} className="w-12 h-12 rounded object-cover" /><h3 className="font-bold">{deal.destination}</h3></div><div className="flex gap-2"><button onClick={() => handleEdit(deal)} className="text-yellow-500 bg-yellow-500/10 p-2 rounded">✏️</button><button onClick={() => handleDelete(deal.id)} className="text-red-500 bg-red-500/10 p-2 rounded">🗑️</button></div></div>))}
+                {deals.map(deal => (
+                    <div key={deal.id} className={`bg-slate-900 border p-4 rounded-xl flex justify-between items-center transition ${deal.is_special_offer ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-white/5'}`}>
+                        <div className="flex gap-4 items-center">
+                            <img src={deal.image} className="w-12 h-12 rounded object-cover" />
+                            <div>
+                                <h3 className="font-bold flex items-center gap-2">
+                                    {deal.destination}
+                                    {deal.is_special_offer && <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded text-white">AKČNÍ</span>}
+                                </h3>
+                                {deal.original_price > 0 && deal.original_price > deal.total_price && (
+                                    <p className="text-xs text-red-400 line-through">{deal.original_price} Kč</p>
+                                )}
+                                <p className="text-sm text-green-400 font-bold">{deal.total_price} Kč</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleEdit(deal)} className="text-yellow-500 bg-yellow-500/10 p-2 rounded hover:bg-yellow-500/20">✏️</button>
+                            <button onClick={() => handleDelete(deal.id)} className="text-red-500 bg-red-500/10 p-2 rounded hover:bg-red-500/20">🗑️</button>
+                        </div>
+                    </div>
+                ))}
             </div>
           </div>
         )}

@@ -16,11 +16,19 @@ interface Deal {
   id: number; destination: string; country: string; image: string; departure_date: string; return_date: string;
   from_city: string; flight_price: number; hotel_price: number; total_price: number; rating: number;
   description: string; latitude: number; longitude: number; tags: string[]; seats_left: number; category: string;
+  // NOVÉ POLOŽKY
+  original_price?: number; 
+  is_special_offer?: boolean;
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'Všechno 🌍' }, { id: 'Exotika', label: 'Exotika 🏝️' }, { id: 'Evropa', label: 'Evropa 🇪🇺' },
-  { id: 'Česko', label: 'Česko 🇨🇿' }, { id: 'Letenky', label: 'Jen letenky ✈️' }, { id: 'Last Minute', label: 'Last Minute 🔥' },
+  { id: 'all', label: 'Všechno 🌍' }, 
+  { id: 'special', label: 'Akční nabídky ⚡' }, // <--- NOVÉ TLAČÍTKO
+  { id: 'Exotika', label: 'Exotika 🏝️' }, 
+  { id: 'Evropa', label: 'Evropa 🇪🇺' },
+  { id: 'Česko', label: 'Česko 🇨🇿' }, 
+  { id: 'Letenky', label: 'Jen letenky ✈️' }, 
+  { id: 'Last Minute', label: 'Last Minute 🔥' },
 ];
 
 export default function Home() {
@@ -42,7 +50,7 @@ export default function Home() {
   const [dateTo, setDateTo] = useState<Date | null>(null);          
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null); // <--- NOVÉ: Ukládání chyby
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -63,17 +71,15 @@ export default function Home() {
         setLoading(true);
         setErrorMsg(null);
         
-        // 1. Zkontrolujeme, jestli máme klíče (jen pro debug)
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         if (!supabaseUrl) throw new Error("Chybí Supabase URL! Zkontroluj Environment Variables na Vercelu.");
 
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUser(user);
         
-        // 2. Načtení dat
         const { data: dealsData, error: dbError } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
         
-        if (dbError) throw new Error(dbError.message); // Pokud databáze vrátí chybu
+        if (dbError) throw new Error(dbError.message);
         
         setDeals(dealsData || []);
         if (user) {
@@ -132,7 +138,11 @@ export default function Home() {
   };
 
   const filteredDeals = deals.filter(deal => {
-    if (activeCategory !== 'all' && deal.category !== activeCategory) return false;
+    // NOVÝ FILTR PRO AKČNÍ NABÍDKY
+    if (activeCategory === 'special' && !deal.is_special_offer) return false;
+    
+    // Původní filtry
+    if (activeCategory !== 'all' && activeCategory !== 'special' && deal.category !== activeCategory) return false;
     if (deal.seats_left < searchSeats && deal.seats_left > 0) return false;
     if (searchTerm && !deal.destination.toLowerCase().includes(searchTerm.toLowerCase()) && !deal.country.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (dateFrom && new Date(deal.departure_date) < dateFrom) return false;
@@ -182,7 +192,6 @@ export default function Home() {
       <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4"><DealMap deals={filteredDeals} /></div>
 
       <div className="max-w-7xl mx-auto px-6 mt-8">
-        {/* === TADY SE ZOBRAZUJE CHYBA === */}
         {errorMsg ? (
             <div className="text-center py-20 bg-red-900/20 rounded-2xl border border-red-500/50">
                 <h2 className="text-3xl text-red-500 font-bold mb-2">⚠️ CHYBA PŘIPOJENÍ</h2>
@@ -209,8 +218,13 @@ export default function Home() {
                   <img src={deal.image} className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${deal.seats_left === 0 ? 'grayscale opacity-50' : 'opacity-90 group-hover:opacity-100'}`} />
                   <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className="bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">{deal.category || 'Ostatní'}</span>
-                        {deal.seats_left === 0 ? (<span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🚫 VYPRODÁNO</span>) : (deal.total_price < 15000 && <span className="bg-orange-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🔥 Super Cena</span>)}
+                        {/* ŠTÍTKY KATEGORIE A AKCE */}
+                        <div className="flex gap-1">
+                            <span className="bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">{deal.category || 'Ostatní'}</span>
+                            {deal.is_special_offer && <span className="bg-yellow-500 text-black text-[10px] font-extrabold px-2 py-1 rounded shadow uppercase tracking-wider animate-pulse">⚡ AKCE</span>}
+                        </div>
+                        
+                        {deal.seats_left === 0 ? (<span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🚫 VYPRODÁNO</span>) : (deal.total_price < 15000 && !deal.is_special_offer && <span className="bg-orange-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow uppercase tracking-wider">🔥 Super Cena</span>)}
                       </div>
                    </div>
                 </div>
@@ -220,7 +234,28 @@ export default function Home() {
                     {deal.rating > 0 && <div className="bg-slate-800 text-xs font-bold px-2 py-1 rounded text-yellow-400">★ {deal.rating}</div>}
                   </div>
                   <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-end">
-                    <div><p className="text-xs text-slate-500 mb-1">{formatDate(deal.departure_date)}</p><span className="text-2xl font-bold text-green-400">{(deal.total_price || 0).toLocaleString()} Kč</span></div>
+                    
+                    {/* === UPRAVENÁ ČÁST PRO CENU A SLEVY === */}
+                    <div>
+                        <p className="text-xs text-slate-500 mb-1">{formatDate(deal.departure_date)}</p>
+                        
+                        {/* Zobrazení slevy, pokud existuje */}
+                        {deal.original_price && deal.original_price > deal.total_price ? (
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-slate-500 line-through decoration-red-500 decoration-2">{deal.original_price.toLocaleString()} Kč</span>
+                                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                        -{Math.round(((deal.original_price - deal.total_price) / deal.original_price) * 100)}%
+                                    </span>
+                                </div>
+                                <span className="text-2xl font-bold text-green-400">{(deal.total_price || 0).toLocaleString()} Kč</span>
+                            </div>
+                        ) : (
+                            <span className="text-2xl font-bold text-green-400">{(deal.total_price || 0).toLocaleString()} Kč</span>
+                        )}
+                    </div>
+                    {/* ======================================= */}
+
                     {deal.seats_left > 0 && deal.seats_left <= 3 && <div className="text-[10px] font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/20 animate-pulse">Poslední {deal.seats_left} místa!</div>}
                     {deal.seats_left === 0 && <div className="text-[10px] font-bold text-slate-500">Kapacita naplněna</div>}
                   </div>
@@ -275,4 +310,3 @@ export default function Home() {
     </main>
   );
 }
-//oprava
