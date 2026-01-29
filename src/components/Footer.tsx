@@ -1,69 +1,82 @@
-'use client';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Footer() {
-  const router = useRouter();
-
   return (
-    <footer className="bg-slate-950 border-t border-white/10 pt-16 pb-8 text-slate-400 text-sm">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-        {/* Sloupec 1: O nás */}
-        <div>
-          {/* === ZMĚNA LOGA ZDE === */}
-          <div className="text-2xl font-bold text-white tracking-tighter mb-4 cursor-pointer" onClick={() => router.push('/')}>
+    <footer className="bg-slate-950 border-t border-white/10 py-12 text-slate-400 text-sm">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+        
+        {/* 1. Sloupec - Logo a info */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-extrabold text-white tracking-tighter">
             Trip<span className="text-blue-500">Hack</span>
-          </div>
-          <p className="leading-relaxed mb-4">
-            Jsme komunita cestovatelů, kteří loví ty největší chyby v letenkách a last-minute nabídky. Cestuj chytře, žij naplno.
+          </h2>
+          <p>
+            Cestuj chytře, levně a bez starostí. 
+            Hlídáme ty nejlepší nabídky za tebe.
           </p>
-          <div className="flex gap-4">
-             <span className="cursor-pointer hover:text-white transition">📸 Instagram</span>
-             <span className="cursor-pointer hover:text-white transition">📘 Facebook</span>
-             <span className="cursor-pointer hover:text-white transition">🐦 Twitter</span>
+          <div className="flex gap-4 pt-2">
+            {/* TIKTOK IKONA */}
+            <a 
+              href="https://www.tiktok.com/@triphack.cz" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 bg-slate-900 flex items-center justify-center rounded-full hover:bg-[#00f2ea] hover:text-black transition duration-300 group"
+              title="Sleduj nás na TikToku"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-black">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              </svg>
+            </a>
+
+            {/* INSTAGRAM IKONA */}
+            <a 
+              href="https://www.instagram.com/triphack.cz/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 bg-slate-900 flex items-center justify-center rounded-full hover:bg-gradient-to-tr hover:from-[#fd5949] hover:to-[#d6249f] hover:text-white transition duration-300"
+              title="Sleduj nás na Instagramu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+              </svg>
+            </a>
           </div>
         </div>
 
-        {/* Sloupec 2: Rychlé odkazy */}
+        {/* 2. Sloupec - Rychlé odkazy */}
         <div>
-          <h3 className="text-white font-bold uppercase tracking-wider mb-4">Prozkoumat</h3>
+          <h3 className="text-white font-bold mb-4 uppercase tracking-wider">O nás</h3>
           <ul className="space-y-2">
-            <li onClick={() => router.push('/')} className="cursor-pointer hover:text-blue-400 transition">Všechny zájezdy</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Akční letenky</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Exotika</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Eurovíkendy</li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Jak to funguje?</Link></li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Náš příběh</Link></li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Kariéra</Link></li>
           </ul>
         </div>
 
-        {/* Sloupec 3: Podpora */}
+        {/* 3. Sloupec - Podpora */}
         <div>
-          <h3 className="text-white font-bold uppercase tracking-wider mb-4">Podpora</h3>
+          <h3 className="text-white font-bold mb-4 uppercase tracking-wider">Podpora</h3>
           <ul className="space-y-2">
-            <li className="cursor-pointer hover:text-blue-400 transition">Časté dotazy (FAQ)</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Jak to funguje</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Obchodní podmínky</li>
-            <li className="cursor-pointer hover:text-blue-400 transition">Ochrana údajů</li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Časté dotazy (FAQ)</Link></li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Kontakt</Link></li>
+            <li><Link href="#" className="hover:text-blue-400 transition">Ochrana údajů</Link></li>
           </ul>
         </div>
 
-        {/* Sloupec 4: Kontakt */}
+        {/* 4. Sloupec - Kontakt */}
         <div>
-          <h3 className="text-white font-bold uppercase tracking-wider mb-4">Kontakt</h3>
+          <h3 className="text-white font-bold mb-4 uppercase tracking-wider">Kontakt</h3>
           <ul className="space-y-2">
-            <li>📍 Praha, Česká republika</li>
-            <li>📧 info@triphack.cz</li> {/* Změnil jsem i email */}
-            <li>📞 +420 123 456 789</li>
+            <li>info@triphack.cz</li>
+            <li>+420 123 456 789</li>
+            <li className="pt-2 text-xs opacity-50">
+              © {new Date().getFullYear()} TripHack. Všechna práva vyhrazena.
+            </li>
           </ul>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        {/* === ZMĚNA COPYRIGHTU ZDE === */}
-        <p>&copy; 2026 TripHack. Všechna práva vyhrazena.</p>
-        <div className="flex gap-4 grayscale opacity-50">
-            <span>💳 Visa</span>
-            <span>💳 Mastercard</span>
-            <span>💳 PayPal</span>
-        </div>
       </div>
     </footer>
   );
