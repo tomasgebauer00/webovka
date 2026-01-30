@@ -38,4 +38,4 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ text: `Chyba: ${msg}` }, { status: 500 });
   }
-}
+} //fix
