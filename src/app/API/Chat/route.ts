@@ -1,41 +1,37 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// 1. BEZPEČNOSTNÍ POJISTKA:
+// Tímto říkáme serveru: "Klíč tam je, a kdyby nebyl, použij prázdný řetězec, hlavně nepaddej."
+const apiKey = process.env.OPENAI_API_KEY || '';
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: apiKey,
 });
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    console.log("📨 Zpráva od uživatele:", body.message);
+    const { message } = await req.json();
 
-    // Kontrola, jestli server vidí klíč
-    if (!process.env.OPENAI_API_KEY) {
-        console.error("❌ KRITICKÁ CHYBA: Server nevidí API klíč!");
-        return NextResponse.json({ text: "Chyba: Chybí API klíč na serveru." }, { status: 500 });
+    // 2. KONTROLA UVNITŘ FUNKCE:
+    if (!apiKey) {
+      return NextResponse.json({ text: "Chyba serveru: Chybí API klíč." }, { status: 500 });
     }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "Jsi TripBot." }, // Jednoduchý systém pro test
-        { role: "user", content: body.message },
+        {
+          role: "system",
+          content: "Jsi TripBot, AI asistent webu TripHack.cz. Tykáš, jsi stručný a vtipný.",
+        },
+        { role: "user", content: message },
       ],
     });
 
-    console.log("✅ ÚSPĚCH! Odpověď:", completion.choices[0].message.content);
     return NextResponse.json({ text: completion.choices[0].message.content });
 
   } catch (error: any) {
-    // TADY SE UKÁŽE SKUTEČNÝ DŮVOD
-    console.error("❌❌❌ CHYBA OPENAI:", error);
-    
-    let msg = "Neznámá chyba.";
-    if (error.status === 401) msg = "Špatný API klíč (zkontroluj .env.local).";
-    if (error.status === 429) msg = "Došel kredit nebo OpenAI ještě nezpracovalo platbu (počkej 5 min).";
-    if (error.status === 404) msg = "Model gpt-4o-mini neexistuje nebo k němu nemáš přístup.";
-
-    return NextResponse.json({ text: `Chyba: ${msg}` }, { status: 500 });
+    return NextResponse.json({ text: "Omlouvám se, výpadek spojení. 🤖" }, { status: 500 });
   }
-} //fix
+}
