@@ -310,4 +310,4 @@ export default function Home() {
     </main>
   );
 }
-//oprava
+//fix
