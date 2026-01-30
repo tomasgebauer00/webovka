@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 export default function AiChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
-    { role: 'bot', text: 'Čau! 👋 Jsem TripBot s umělou inteligencí. Napiš mi, kam chceš letět nebo kolik máš peněz, a já ti poradím!' }
+    { role: 'bot', text: 'Čau! 👋 Jsem TripBot s umělou inteligencí. Napiš mi, kam chceš letět, a já ti poradím!' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -19,19 +19,28 @@ export default function AiChat() {
 
     const userMsg = input;
     setInput('');
+    
+    // 1. Zobrazíme tvou zprávu
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsTyping(true);
 
     try {
+        // 2. VOLÁME SERVER (Ten soubor route.ts, co jsi vytvořil předtím)
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg })
         });
+
+        if (!response.ok) throw new Error('Chyba serveru');
+
         const data = await response.json();
+
+        // 3. Zobrazíme odpověď od AI
         setMessages(prev => [...prev, { role: 'bot', text: data.text }]);
     } catch (error) {
-        setMessages(prev => [...prev, { role: 'bot', text: "Něco se pokazilo. 🤖 Zkus to znovu." }]);
+        console.error(error);
+        setMessages(prev => [...prev, { role: 'bot', text: "Sakra, něco se pokazilo. 🤖 Zkus to znovu." }]);
     } finally {
         setIsTyping(false);
     }
