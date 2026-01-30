@@ -3,8 +3,9 @@ import { useState, useRef, useEffect } from 'react';
 
 export default function AiChat() {
   const [isOpen, setIsOpen] = useState(false);
+  // ZMĚNIL JSEM ÚVODNÍ ZPRÁVU, ABYS POZNAL, ŽE MÁŠ NOVOU VERZI:
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
-    { role: 'bot', text: 'Čau! 👋 Jsem TripBot s umělou inteligencí. Napiš mi, kam chceš letět, a já ti poradím!' }
+    { role: 'bot', text: 'Ahoj šéfe! 🫡 Jsem připravený TripBot. Kam to dneska bude?' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -20,27 +21,24 @@ export default function AiChat() {
     const userMsg = input;
     setInput('');
     
-    // 1. Zobrazíme tvou zprávu
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsTyping(true);
 
     try {
-        // 2. VOLÁME SERVER (Ten soubor route.ts, co jsi vytvořil předtím)
+        console.log("Odesílám dotaz na AI..."); // Pro kontrolu v konzoli
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg })
         });
 
-        if (!response.ok) throw new Error('Chyba serveru');
+        if (!response.ok) throw new Error(`Chyba serveru: ${response.status}`);
 
         const data = await response.json();
-
-        // 3. Zobrazíme odpověď od AI
         setMessages(prev => [...prev, { role: 'bot', text: data.text }]);
     } catch (error) {
-        console.error(error);
-        setMessages(prev => [...prev, { role: 'bot', text: "Sakra, něco se pokazilo. 🤖 Zkus to znovu." }]);
+        console.error("CHYBA:", error);
+        setMessages(prev => [...prev, { role: 'bot', text: "Omlouvám se, spojení selhalo. Zkontroluj terminál ve VS Code." }]);
     } finally {
         setIsTyping(false);
     }
@@ -59,10 +57,10 @@ export default function AiChat() {
         <div className="fixed bottom-6 left-6 z-50 w-[90vw] md:w-96 h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
             <div className="bg-gradient-to-r from-blue-700 to-blue-900 p-4 flex justify-between items-center shadow-md">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-xl backdrop-blur-sm">🤖</div>
+                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-xl backdrop-blur-sm">🧠</div>
                     <div>
                         <h3 className="font-bold text-white text-sm">TripBot AI</h3>
-                        <p className="text-[10px] text-blue-100 flex items-center gap-1 opacity-80"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online • GPT-4</p>
+                        <p className="text-[10px] text-blue-100 flex items-center gap-1 opacity-80"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online</p>
                     </div>
                 </div>
                 <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition bg-black/20 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
@@ -75,14 +73,14 @@ export default function AiChat() {
                     </div>
                 ))}
                 {isTyping && (
-                    <div className="flex justify-start"><div className="bg-slate-800 p-3 rounded-2xl rounded-bl-none text-slate-400 text-xs flex gap-1 items-center border border-white/5"><span className="mr-2 font-bold">TripBot píše</span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200"></span></div></div>
+                    <div className="flex justify-start"><div className="bg-slate-800 p-3 rounded-2xl rounded-bl-none text-slate-400 text-xs flex gap-1 items-center border border-white/5"><span className="mr-2 font-bold">TripBot přemýšlí</span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200"></span></div></div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSend} className="p-3 bg-slate-900 border-t border-white/10 flex gap-2 items-center">
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Zeptej se na cokoliv..." disabled={isTyping} className="flex-1 bg-slate-950 text-white text-sm rounded-full px-4 py-3 border border-white/10 focus:border-blue-500 outline-none disabled:opacity-50 transition placeholder-slate-500" />
-                <button type="submit" disabled={isTyping || !input.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white w-11 h-11 rounded-full flex items-center justify-center transition shadow-lg shadow-blue-900/20 transform active:scale-95">➤</button>
+                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Zeptej se..." disabled={isTyping} className="flex-1 bg-slate-950 text-white text-sm rounded-full px-4 py-3 border border-white/10 focus:border-blue-500 outline-none disabled:opacity-50 transition placeholder-slate-500" />
+                <button type="submit" disabled={isTyping || !input.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white w-11 h-11 rounded-full flex items-center justify-center transition">➤</button>
             </form>
         </div>
       )}
