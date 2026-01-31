@@ -16,14 +16,13 @@ interface Deal {
   id: number; destination: string; country: string; image: string; departure_date: string; return_date: string;
   from_city: string; flight_price: number; hotel_price: number; total_price: number; rating: number;
   description: string; latitude: number; longitude: number; tags: string[]; seats_left: number; category: string;
-  // NOVÉ POLOŽKY
   original_price?: number; 
   is_special_offer?: boolean;
 }
 
 const CATEGORIES = [
   { id: 'all', label: 'Všechno 🌍' }, 
-  { id: 'special', label: 'Akční nabídky ⚡' }, // <--- NOVÉ TLAČÍTKO
+  { id: 'special', label: 'Akční nabídky ⚡' },
   { id: 'Exotika', label: 'Exotika 🏝️' }, 
   { id: 'Evropa', label: 'Evropa 🇪🇺' },
   { id: 'Česko', label: 'Česko 🇨🇿' }, 
@@ -138,10 +137,7 @@ export default function Home() {
   };
 
   const filteredDeals = deals.filter(deal => {
-    // NOVÝ FILTR PRO AKČNÍ NABÍDKY
     if (activeCategory === 'special' && !deal.is_special_offer) return false;
-    
-    // Původní filtry
     if (activeCategory !== 'all' && activeCategory !== 'special' && deal.category !== activeCategory) return false;
     if (deal.seats_left < searchSeats && deal.seats_left > 0) return false;
     if (searchTerm && !deal.destination.toLowerCase().includes(searchTerm.toLowerCase()) && !deal.country.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -151,13 +147,14 @@ export default function Home() {
   });
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-200 pb-20">
+    // ZDE JSEM ODSTRANIL 'bg-slate-950', ABY BYLO VIDĚT TVÉ NOVÉ VESMÍRNÉ POZADÍ Z GLOBALS.CSS
+    <main className="min-h-screen text-slate-200 pb-20">
       <Navbar />
       <div className="relative pt-28 pb-8 text-center px-4">
         <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
         
         {/* Vyhledávací panel */}
-        <div className="max-w-6xl mx-auto bg-slate-900 border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
+        <div className="max-w-6xl mx-auto bg-slate-900/80 backdrop-blur border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
           <div className="flex-[1.5] px-6 py-2 border-r border-white/10 relative hover:bg-white/5 rounded-full transition group">
              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pointer-events-none">Kam?</label>
              <input type="text" placeholder="Všechny destinace" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder-slate-500"/>
@@ -186,7 +183,7 @@ export default function Home() {
             </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900 text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
+        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900/50 backdrop-blur text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
       </div>
 
       <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4"><DealMap deals={filteredDeals} /></div>
@@ -208,7 +205,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredDeals.map((deal) => (
-              <div key={deal.id} onClick={() => router.push(`/deal/${deal.id}`)} className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 cursor-pointer group relative flex flex-col h-full">
+              <div key={deal.id} onClick={() => router.push(`/deal/${deal.id}`)} className="bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 cursor-pointer group relative flex flex-col h-full">
                 
                 <button onClick={(e) => toggleFavorite(e, deal.id)} className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 transition group-active:scale-95"><span className={favoriteIds.includes(deal.id) ? "text-red-500 scale-110 inline-block" : "text-white opacity-70"}>{favoriteIds.includes(deal.id) ? '❤️' : '🤍'}</span></button>
                 
@@ -235,11 +232,9 @@ export default function Home() {
                   </div>
                   <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-end">
                     
-                    {/* === UPRAVENÁ ČÁST PRO CENU A SLEVY === */}
+                    {/* === CENA A SLEVY === */}
                     <div>
                         <p className="text-xs text-slate-500 mb-1">{formatDate(deal.departure_date)}</p>
-                        
-                        {/* Zobrazení slevy, pokud existuje */}
                         {deal.original_price && deal.original_price > deal.total_price ? (
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
@@ -254,7 +249,6 @@ export default function Home() {
                             <span className="text-2xl font-bold text-green-400">{(deal.total_price || 0).toLocaleString()} Kč</span>
                         )}
                     </div>
-                    {/* ======================================= */}
 
                     {deal.seats_left > 0 && deal.seats_left <= 3 && <div className="text-[10px] font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/20 animate-pulse">Poslední {deal.seats_left} místa!</div>}
                     {deal.seats_left === 0 && <div className="text-[10px] font-bold text-slate-500">Kapacita naplněna</div>}
@@ -306,8 +300,7 @@ export default function Home() {
           </div>
       )}
 
-      <section className="mt-20 py-20 bg-blue-900/20 border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
+      <section className="mt-20 py-20 bg-blue-900/10 backdrop-blur-sm border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
     </main>
   );
 }
-//fix

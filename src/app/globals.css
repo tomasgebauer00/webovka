@@ -2,23 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
-}
-
+/* === HLAVNÍ POZADÍ A STYLY (VESMÍRNÝ VZHLED) === */
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  /* Hluboká tmavě modrá záře nahoře (podle loga), která přechází do černé */
+  background: radial-gradient(circle at top center, #0f172a 0%, #020617 40%, #000000 100%);
+  color: #ffffff;
+  min-height: 100vh;
 }
 
-/* === CUSTOM DARK CALENDAR (React Datepicker) === */
+/* === VYLEPŠENÝ POSUVNÍK (SCROLLBAR) === */
+/* Aby to hnusné šedé wokno nerušilo tmavý design */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* === CUSTOM DARK CALENDAR (React Datepicker) - TVŮJ KÓD === */
 .react-datepicker {
   font-family: inherit;
   background-color: #0f172a !important; /* bg-slate-900 */
