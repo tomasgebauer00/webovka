@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 
 export default function AiChat() {
   const [isOpen, setIsOpen] = useState(false);
-  // Změnil jsem text, abys poznal, že se to aktualizovalo
+  
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
     { role: 'bot', text: 'Ahoj! 👋 Jsem TripBot s umělou inteligencí. Zeptej se mě na cokoliv o cestování!' }
   ]);
@@ -26,15 +26,16 @@ export default function AiChat() {
     setIsTyping(true);
 
     try {
-        // 2. Odeslání na server (Tohle je ta změna oproti staré verzi)
-        const response = await fetch('/api/chat', {
+        // 🚨 ZMĚNA ZDE: Adresa musí odpovídat názvu tvé složky (api_fix)
+        const response = await fetch('/api_fix/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg })
         });
 
         if (!response.ok) {
-            throw new Error('Chyba komunikace');
+            // Pokud server vrátí chybu (např. 404 nebo 500)
+            throw new Error(`Chyba serveru: ${response.status}`);
         }
 
         const data = await response.json();
@@ -42,8 +43,8 @@ export default function AiChat() {
         // 3. Zobrazit odpověď od AI
         setMessages(prev => [...prev, { role: 'bot', text: data.text }]);
     } catch (error) {
-        console.error(error);
-        setMessages(prev => [...prev, { role: 'bot', text: "Omlouvám se, spojení s AI selhalo. Zkontroluj terminál." }]);
+        console.error("Chyba v komunikaci:", error);
+        setMessages(prev => [...prev, { role: 'bot', text: "Omlouvám se, spojení s AI selhalo. 🔌 Zkus to za chvilku." }]);
     } finally {
         setIsTyping(false);
     }
@@ -51,7 +52,7 @@ export default function AiChat() {
 
   return (
     <>
-      {/* Tlačítko (Bublina) - STEJNÝ DESIGN */}
+      {/* Tlačítko (Bublina) */}
       {!isOpen && (
         <button 
             onClick={() => setIsOpen(true)}
@@ -62,7 +63,7 @@ export default function AiChat() {
         </button>
       )}
 
-      {/* Chatovací Okno - STEJNÝ DESIGN */}
+      {/* Chatovací Okno */}
       {isOpen && (
         <div className="fixed bottom-6 left-6 z-50 w-[90vw] md:w-96 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 h-[500px]">
             
