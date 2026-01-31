@@ -37,11 +37,9 @@ export default function Home() {
   const [searchSeats, setSearchSeats] = useState(1); 
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Našeptávač
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Stavy pro POROVNÁVAČ
   const [compareList, setCompareList] = useState<Deal[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
@@ -147,7 +145,7 @@ export default function Home() {
   });
 
   return (
-    // ZDE JSEM ODSTRANIL 'bg-slate-950', ABY BYLO VIDĚT TVÉ NOVÉ VESMÍRNÉ POZADÍ Z GLOBALS.CSS
+    // ZDE JSEM SMAZAL 'bg-slate-950'. Teď bude stránka průhledná a bude vidět vesmír z globals.css
     <main className="min-h-screen text-slate-200 pb-20">
       <Navbar />
       <div className="relative pt-28 pb-8 text-center px-4">
