@@ -23,17 +23,16 @@ export default function AiChat() {
     setIsTyping(true);
 
     try {
-        // 🛑 TADY BOLA CHYBA! Měním adresu na '/api_fix/chat', aby seděla s tvou složkou.
+        // ✅ TADY JE TO SROVNANÉ: Voláme /api_fix/chat, protože tak se jmenuje tvoje složka
         const response = await fetch('/api_fix/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg })
         });
 
-        // Tady zjistíme přesně, co se děje, pokud to spadne
         if (!response.ok) {
             let errorText = `Chyba ${response.status}`;
-            if (response.status === 404) errorText = "Chyba 404: Server nenalezen (špatná adresa)";
+            if (response.status === 404) errorText = "Chyba 404: Adresa /api_fix/chat nenalezena (zkontroluj název složky)";
             if (response.status === 500) errorText = "Chyba 500: Server spadl (chybí API klíč?)";
             throw new Error(errorText);
         }
@@ -43,7 +42,6 @@ export default function AiChat() {
 
     } catch (error: any) {
         console.error("Chyba:", error);
-        // Vypíšeme chybu přímo do chatu, ať víme, co opravit
         setMessages(prev => [...prev, { role: 'bot', text: `❌ ${error.message || "Chyba spojení"}` }]);
     } finally {
         setIsTyping(false);
