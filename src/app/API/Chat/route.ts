@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// 1. BEZPEČNOSTNÍ POJISTKA:
-// Tímto říkáme serveru: "Klíč tam je, a kdyby nebyl, použij prázdný řetězec, hlavně nepaddej."
-const apiKey = process.env.OPENAI_API_KEY || '';
-
-const openai = new OpenAI({
-  apiKey: apiKey,
-});
+// POZOR: OpenAI inicializujeme až uvnitř funkce, ne tady venku!
 
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
-    // 2. KONTROLA UVNITŘ FUNKCE:
+    // 1. Tady si bezpečně načteme klíč
+    // Pokud na serveru chybí, použijeme prázdný řetězec, aby to hned nespadlo
+    const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      return NextResponse.json({ text: "Chyba serveru: Chybí API klíč." }, { status: 500 });
+      console.error("❌ CHYBA: Na Vercelu není nastaven OPENAI_API_KEY!");
+      return NextResponse.json({ text: "Chyba serveru: Nemám klíč k AI." }, { status: 500 });
     }
+
+    // 2. Inicializace OpenAI AŽ TADY UVNITŘ
+    // Díky tomu to neshodí 'npm run build'
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ text: completion.choices[0].message.content });
 
   } catch (error: any) {
-    return NextResponse.json({ text: "Omlouvám se, výpadek spojení. 🤖" }, { status: 500 });
+    console.error("Chyba OpenAI:", error);
+    return NextResponse.json({ text: "Omlouvám se, něco se pokazilo. 🤖" }, { status: 500 });
   }
 }
