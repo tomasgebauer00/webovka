@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'TripHack - Cestuj chytře',
-  description: 'Najdi nejlevnější letenky a dovolené s pomocí AI.',
+  description: 'Nejlevnější letenky a AI průvodce.',
 };
 
 export default function RootLayout({
@@ -16,12 +16,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="cs">
-      {/* DŮLEŽITÉ: 
-         1. Odstranil jsem 'bg-slate-950' z className.
-         2. Není tu žádný <SocialProof />, takže alerty zmizí.
-         3. Pozadí se načte z globals.css (ten vesmír).
+      {/* TADY JE TA ZMĚNA "NA SÍLU":
+         1. style={{ ... }} přepíše jakýkoliv Tailwind.
+         2. background je nastavený přímo zde.
+         3. Žádný SocialProof, takže žádné alerty.
       */}
-      <body className={inter.className}>
+      <body 
+        className={inter.className}
+        style={{
+          background: 'radial-gradient(circle at top center, #0f172a 0%, #020617 40%, #000000 100%)',
+          color: 'white',
+          minHeight: '100vh',
+          margin: 0
+        }}
+      >
         {children}
       </body>
     </html>

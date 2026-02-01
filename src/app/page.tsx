@@ -145,7 +145,7 @@ export default function Home() {
   });
 
   return (
-    // ZDE JSEM SMAZAL 'bg-slate-950'. Teď bude stránka průhledná a bude vidět vesmír z globals.css
+    // ZMĚNA: Odstraněno 'bg-slate-950'. Teď je pozadí průhledné a bere si barvu z layoutu (vesmír).
     <main className="min-h-screen text-slate-200 pb-20">
       <Navbar />
       <div className="relative pt-28 pb-8 text-center px-4">
