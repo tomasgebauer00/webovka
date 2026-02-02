@@ -23,18 +23,15 @@ export default function AiChat() {
     setIsTyping(true);
 
     try {
-        // ✅ TADY JE TO SROVNANÉ: Voláme /api_fix/chat, protože tak se jmenuje tvoje složka
-        const response = await fetch('/api_fix/chat', {
+        // ✅ OPRAVENO: Voláme standardní cestu /api/chat
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg })
         });
 
         if (!response.ok) {
-            let errorText = `Chyba ${response.status}`;
-            if (response.status === 404) errorText = "Chyba 404: Adresa /api_fix/chat nenalezena (zkontroluj název složky)";
-            if (response.status === 500) errorText = "Chyba 500: Server spadl (chybí API klíč?)";
-            throw new Error(errorText);
+            throw new Error(`Chyba serveru: ${response.status}`);
         }
 
         const data = await response.json();
@@ -53,15 +50,15 @@ export default function AiChat() {
       {!isOpen && (
         <button 
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 left-6 z-50 bg-blue-600 hover:bg-blue-500 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 animate-bounce-slow"
+            className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-110 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition animate-bounce-slow border-2 border-white/20"
         >
-            <span className="text-2xl">🤖</span>
+            <span className="text-3xl">🤖</span>
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-[90vw] md:w-96 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[500px]">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 flex justify-between items-center">
+        <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-96 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[500px] animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <span className="text-2xl">🧠</span>
                     <div>
@@ -81,7 +78,7 @@ export default function AiChat() {
                     </div>
                 ))}
                 {isTyping && (
-                     <div className="flex justify-start"><div className="bg-slate-800 p-3 rounded-2xl text-slate-400 text-xs">AI píše...</div></div>
+                     <div className="flex justify-start"><div className="bg-slate-800 p-3 rounded-2xl text-slate-400 text-xs animate-pulse">AI píše...</div></div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
@@ -92,10 +89,10 @@ export default function AiChat() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Zeptej se..." 
-                    className="flex-1 bg-slate-950 text-white text-sm rounded-full px-4 py-2 border border-white/10 outline-none"
+                    className="flex-1 bg-slate-950 text-white text-sm rounded-full px-4 py-2 border border-white/10 outline-none focus:border-blue-500 transition"
                     disabled={isTyping}
                 />
-                <button type="submit" disabled={isTyping} className="bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center">➤</button>
+                <button type="submit" disabled={isTyping} className="bg-blue-600 hover:bg-blue-500 text-white w-9 h-9 rounded-full flex items-center justify-center transition">➤</button>
             </form>
         </div>
       )}
