@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// === NOVÉ IMPORTY ===
+// === NOVÉ IMPORTY PRO TVÉ SEKCE ===
 import BuddySection from '../components/BuddySection';
 import VisaHealthSection from '../components/VisaHealthSection';
 import TravelHacksSection from '../components/TravelHacksSection';
@@ -305,7 +305,7 @@ export default function Home() {
           </div>
       )}
 
-      {/* === ZDE ZAČÍNAJÍ NOVÉ SEKCE === */}
+      {/* === ZDE ZAČÍNAJÍ NOVÉ SEKCE (BUDDY, VISA, HACKS) === */}
       
       <BuddySection />
       
