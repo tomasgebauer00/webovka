@@ -16,15 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="cs">
-      {/* TADY JE TA ZMĚNA "NA SÍLU":
-         1. style={{ ... }} přepíše jakýkoliv Tailwind.
-         2. background je nastavený přímo zde.
-         3. Žádný SocialProof, takže žádné alerty.
-      */}
       <body 
         className={inter.className}
         style={{
-          background: 'radial-gradient(circle at top center, #0f172a 0%, #020617 40%, #000000 100%)',
+          // TADY JE TO POZADÍ "NATVRDO" - Modrá záře nahoře, černá dole
+          background: 'radial-gradient(circle at top center, #1e3a8a 0%, #020617 40%, #000000 100%)',
+          backgroundAttachment: 'fixed', // Aby se pozadí nehýbalo
           color: 'white',
           minHeight: '100vh',
           margin: 0
