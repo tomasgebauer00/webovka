@@ -5,24 +5,50 @@ import { useRouter } from 'next/navigation';
 import { Plane, Users, ShieldCheck, Lightbulb, Flame, User, LogOut, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-// === 🛑 ADMIN EMAILY 🛑 ===
-// Ujisti se, že je to VŠECHNO malým a BEZ mezer
-const ADMIN_EMAILS = ['tomasgebauer00@gmail.com']; 
-
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [debugInfo, setDebugInfo] = useState<string>(''); // Pomocná proměnná pro ladění
+  const [isAdmin, setIsAdmin] = useState(false); // Stav pro uložení, zda je admin
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
+    // Funkce pro kontrolu uživatele a jeho role
+    const checkUserAndRole = async () => {
+      // 1. Zjistíme, kdo je přihlášený v Auth
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser(session.user);
 
+        // 2. ZEPTÁME SE DATABÁZE NA ROLI (Dynamická kontrola)
+        // Hledáme v tabulce 'profiles', zda má tento uživatel roli 'admin'
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile && profile.role === 'admin') {
+          setIsAdmin(true);
+          console.log("Admin ověřen z databáze ✅");
+        } else {
+          setIsAdmin(false);
+        }
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+      }
+    };
+
+    checkUserAndRole();
+
+    // Poslouchat změny (přihlášení/odhlášení)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsAdmin(false);
+      } else if (session?.user) {
+        checkUserAndRole(); // Znovu zkontrolovat roli při změně
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -31,6 +57,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setIsAdmin(false);
     router.push('/');
     router.refresh();
   };
@@ -46,13 +73,6 @@ export default function Navbar() {
     }
   };
 
-  // === 🕵️‍♂️ ROBUSTNÍ KONTROLA ADMINA ===
-  // 1. Vezmeme email
-  // 2. Převedeme na malá písmena (.toLowerCase)
-  // 3. Ořízneme mezery (.trim) - tohle často dělá problémy!
-  const currentEmail = user?.email?.toLowerCase().trim();
-  const isAdmin = currentEmail && ADMIN_EMAILS.includes(currentEmail);
-
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
@@ -64,15 +84,6 @@ export default function Navbar() {
             Trip<span className="text-blue-500">Hack</span>
           </span>
         </Link>
-
-        {/* --- DOČASNÝ DEBUGGER (POKUD JSI PŘIHLÁŠENÝ, UKÁŽE TVŮJ EMAIL) --- */}
-        {/* Až to opravíme, tenhle řádek smažeme */}
-        {user && !isAdmin && (
-           <div className="hidden xl:block absolute top-20 right-0 bg-red-600 text-white text-xs p-2 z-50">
-             Systém vidí: "{currentEmail}" <br/>
-             Čekám jeden z: {JSON.stringify(ADMIN_EMAILS)}
-           </div>
-        )}
 
         {/* STŘEDOVÁ NAVIGACE */}
         <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner">
@@ -97,7 +108,8 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-2 ml-2">
               
-              {/* 🛑 TLAČÍTKO ADMIN 🛑 */}
+              {/* 🛑 DYNAMICKÉ ADMIN TLAČÍTKO 🛑 */}
+              {/* Zobrazí se jen tehdy, když databáze potvrdila isAdmin === true */}
               {isAdmin && (
                 <Link href="/admin" className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold">
                   <Settings size={16} /> Admin
