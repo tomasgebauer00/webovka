@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Plane, Users, ShieldCheck, Lightbulb, Flame, User, LogOut, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+// === 🛑 TADY SI NASTAV EMAILY ADMINŮ 🛑 ===
+const ADMIN_EMAILS = ['tomasgebauer00@gmail.com']; 
+// Pokud máš víc adminů, odděl je čárkou: ['tvuj@email.cz', 'kolega@email.cz']
+
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -12,14 +16,12 @@ export default function Navbar() {
 
   // 1. ZJISTÍME, JESTLI JE UŽIVATEL PŘIHLÁŠENÝ
   useEffect(() => {
-    // Načíst aktuálního uživatele při startu
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
     };
     getUser();
 
-    // Poslouchat změny (kdyby se přihlásil/odhlásil v jiném okně)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
     });
@@ -85,7 +87,7 @@ export default function Navbar() {
         {/* PRAVÁ ČÁST */}
         <div className="flex items-center gap-3">
           
-          {/* TINDER TLAČÍTKO (Vždy viditelné) */}
+          {/* TINDER TLAČÍTKO */}
           <Link 
             href="/swipe" 
             className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm"
@@ -96,16 +98,17 @@ export default function Navbar() {
 
           {/* === LOGIKA PŘIHLÁŠENÍ === */}
           {user ? (
-            // POKUD JE PŘIHLÁŠENÝ -> UKÁŽEME ADMIN A PROFIL
             <div className="flex items-center gap-2 ml-2">
               
-              {/* Admin Tlačítko */}
-              <Link 
-                href="/admin" 
-                className="hidden md:flex items-center gap-1 text-gray-300 hover:text-white px-3 py-2 hover:bg-white/10 rounded-lg transition text-sm font-bold"
-              >
-                <Settings size={16} /> Admin
-              </Link>
+              {/* 🛑 ADMIN TLAČÍTKO - ZOBRAZÍ SE JEN POKUD JE EMAIL V SEZNAMU 🛑 */}
+              {user.email && ADMIN_EMAILS.includes(user.email) && (
+                <Link 
+                  href="/admin" 
+                  className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold"
+                >
+                  <Settings size={16} /> Admin
+                </Link>
+              )}
 
               {/* Můj Účet */}
               <Link 
@@ -115,7 +118,7 @@ export default function Navbar() {
                 <User size={16} /> Můj účet
               </Link>
 
-              {/* Odhlásit (jen ikonka pro úsporu místa) */}
+              {/* Odhlásit */}
               <button 
                 onClick={handleLogout}
                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition"
@@ -125,7 +128,7 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            // POKUD NENÍ PŘIHLÁŠENÝ -> UKÁŽEME JEN PŘIHLÁSIT
+            // POKUD NENÍ PŘIHLÁŠENÝ
             <Link 
               href="/login"
               className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
