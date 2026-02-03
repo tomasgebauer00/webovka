@@ -10,7 +10,7 @@ import BuddySection from '../components/BuddySection';
 import VisaHealthSection from '../components/VisaHealthSection';
 import TravelHacksSection from '../components/TravelHacksSection';
 import AiChat from '../components/AiChat';
-import LuckyWheel from '../components/LuckyWheel'; // <--- TADY JSME HO PŘIDALI
+import LuckyWheel from '../components/LuckyWheel';
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -174,21 +174,6 @@ export default function Home() {
         <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4" /></div>
         {(dateFrom || dateTo || searchSeats > 1 || searchTerm) && (<button onClick={() => { setDateFrom(null); setDateTo(null); setSearchSeats(1); setActiveCategory('all'); setSearchTerm(''); }} className="mt-6 text-sm text-red-400 hover:text-red-300 font-bold underline decoration-red-400/30">Vymazat filtry ✕</button>)}
         
-        {/* Banner na Tinder Mód */}
-        <div className="max-w-4xl mx-auto mt-8 mb-4 px-4">
-            <div 
-                onClick={() => router.push('/swipe')}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition shadow-2xl shadow-pink-900/30 border border-white/10 group relative overflow-hidden"
-            >
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="relative z-10">
-                    <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
-                    <p className="text-pink-100">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
-                </div>
-                <div className="relative z-10 bg-white text-pink-600 w-12 h-12 rounded-full flex items-center justify-center font-bold text-2xl group-hover:rotate-12 transition">➜</div>
-            </div>
-        </div>
-
         <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900/50 backdrop-blur text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
       </div>
 
@@ -306,13 +291,19 @@ export default function Home() {
           </div>
       )}
 
-      {/* === SEKCE: Buddy, Visa, Hacks === */}
+      {/* === ZDE ZAČÍNAJÍ NOVÉ SEKCE S KOTVAMI (ID) PRO NAVBAR === */}
       
-      <BuddySection />
+      <div id="buddy-section" className="scroll-mt-24">
+        <BuddySection />
+      </div>
       
-      <VisaHealthSection />
+      <div id="visa-section" className="scroll-mt-24">
+        <VisaHealthSection />
+      </div>
       
-      <TravelHacksSection />
+      <div id="hacks-section" className="scroll-mt-24">
+        <TravelHacksSection />
+      </div>
 
       {/* === VLOŽENÝ AI CHATBOT A KOLO ŠTĚSTÍ === */}
       <AiChat />
