@@ -5,21 +5,22 @@ import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'deals' | 'users' | 'bookings'>('deals');
+  // PŘIDÁNO: 'requests' do typů záložek
+  const [activeTab, setActiveTab] = useState<'deals' | 'users' | 'bookings' | 'requests'>('deals');
   const [loading, setLoading] = useState(false);
   
   const [deals, setDeals] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]); // <--- NOVÉ: Stav pro poptávky
   
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [stats, setStats] = useState({ revenue: 0, totalBookings: 0, totalUsers: 0 });
 
-  // PŘIDÁNO: original_price a is_special_offer
   const [formData, setFormData] = useState<any>({
     destination: '', country: '', image: '', from_city: 'Praha',
     departure_date: '', return_date: '', flight_price: 0, hotel_price: 0,
-    original_price: 0, is_special_offer: false, // <--- NOVÉ
+    original_price: 0, is_special_offer: false,
     rating: 5, description: '', category: 'Evropa', tags: '', seats_left: 4, latitude: 0, longitude: 0
   });
 
@@ -34,7 +35,7 @@ export default function AdminPage() {
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
     if (profile?.is_admin) {
       setIsAuthorized(true);
-      fetchDeals(); fetchUsers(); fetchBookings();
+      fetchDeals(); fetchUsers(); fetchBookings(); fetchRequests(); // <--- NOVÉ: Načíst poptávky
     } else { router.push('/'); }
   };
 
@@ -57,6 +58,12 @@ export default function AdminPage() {
     }
   };
 
+  // NOVÉ: Funkce pro načtení zakázek na míru
+  const fetchRequests = async () => {
+    const { data } = await supabase.from('custom_requests').select('*').order('created_at', { ascending: false });
+    if (data) setRequests(data);
+  };
+
   const handleBookingStatus = async (id: number, status: string) => {
       const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
       if (error) alert("Chyba: " + error.message);
@@ -77,7 +84,6 @@ export default function AdminPage() {
     } catch (error: any) { alert('Chyba: ' + error.message); } finally { setUploading(false); }
   };
 
-  // Upravený handler pro checkbox
   const handleChange = (e: any) => {
       const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
       setFormData({ ...formData, [e.target.name]: value });
@@ -90,7 +96,6 @@ export default function AdminPage() {
         departure_date: deal.departure_date?.slice(0, 16), 
         return_date: deal.return_date?.slice(0, 16), 
         tags: deal.tags ? deal.tags.join(', ') : '',
-        // Ujistíme se, že hodnoty nejsou null
         original_price: deal.original_price || 0,
         is_special_offer: deal.is_special_offer || false
     });
@@ -113,18 +118,16 @@ export default function AdminPage() {
     const total = Number(formData.flight_price) + Number(formData.hotel_price);
     const tagsArray = formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t);
     
-    // Payload včetně nových polí
     const payload = { ...formData, total_price: total, tags: tagsArray };
     
     if (editingId) await supabase.from('deals').update(payload).eq('id', editingId);
     else await supabase.from('deals').insert([payload]);
     
-    // Reset formuláře
     setFormData({ 
         destination: '', country: '', image: '', from_city: 'Praha', 
         flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
         description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0,
-        original_price: 0, is_special_offer: false // Reset nových polí
+        original_price: 0, is_special_offer: false
     });
     setEditingId(null); fetchDeals(); setLoading(false); alert('Uloženo! ✅');
   };
@@ -145,6 +148,8 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab('deals')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'deals' ? 'bg-blue-600' : 'bg-slate-800'}`}>✈️ Zájezdy</button>
           <button onClick={() => setActiveTab('bookings')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'bookings' ? 'bg-green-600' : 'bg-slate-800'}`}>📅 Objednávky</button>
           <button onClick={() => setActiveTab('users')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'users' ? 'bg-purple-600' : 'bg-slate-800'}`}>👥 Uživatelé</button>
+          {/* NOVÉ TLAČÍTKO */}
+          <button onClick={() => setActiveTab('requests')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'requests' ? 'bg-orange-600' : 'bg-slate-800'}`}>📩 Poptávky</button>
         </div>
 
         {activeTab === 'deals' && (
@@ -153,7 +158,6 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold mb-4">{editingId ? '✏️ Upravit' : '➕ Přidat'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 
-                {/* 1. SEKCE: AKČNÍ NABÍDKA */}
                 <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3">
                     <input 
                         type="checkbox" 
@@ -173,7 +177,6 @@ export default function AdminPage() {
                 <input name="country" value={formData.country} onChange={handleChange} placeholder="Země" className="w-full bg-slate-950 border border-white/10 rounded p-2" required />
                 <div className="border border-dashed border-white/20 p-4 rounded text-center"><p className="text-xs text-slate-400 mb-2">Nahrát obrázek</p><input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="text-xs text-slate-500"/>{formData.image && <img src={formData.image} className="mt-2 h-20 w-full object-cover rounded" />}</div>
                 
-                {/* 2. SEKCE: CENY A SLEVY */}
                 <div className="bg-slate-950 p-3 rounded border border-white/5 space-y-2">
                     <p className="text-xs text-slate-400 font-bold uppercase">Nastavení ceny</p>
                     <div className="flex flex-col">
@@ -250,6 +253,42 @@ export default function AdminPage() {
         {activeTab === 'users' && (
           <div className="grid gap-4">{users.map(user => (<div key={user.id} className="border border-white/5 p-4 rounded-xl flex justify-between items-center bg-slate-900"><div className="flex items-center gap-4"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${user.is_admin ? 'bg-purple-600' : 'bg-slate-700'}`}>{user.email?.charAt(0).toUpperCase()}</div><div><h3 className="font-bold text-white">{user.email} {user.is_admin && <span className="bg-purple-600 text-[10px] px-2 py-0.5 rounded-full uppercase ml-2">Admin</span>}</h3></div></div><button onClick={() => toggleAdminStatus(user.id, user.is_admin)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition">{user.is_admin ? 'Odebrat Admina' : 'Udělat Adminem'}</button></div>))}</div>
         )}
+
+        {/* NOVÁ ZÁLOŽKA: POPTÁVKY NA MÍRU */}
+        {activeTab === 'requests' && (
+            <div className="grid gap-4">
+                {requests.length === 0 ? <p className="text-slate-500 italic">Zatím žádné poptávky na míru.</p> : requests.map(req => (
+                    <div key={req.id} className="bg-slate-900 p-6 rounded-xl border border-orange-500/20 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-bold text-orange-400 text-xl">{req.destination}</h3>
+                                <p className="text-sm text-slate-300 mt-1">
+                                    📅 {req.date_range} &bull; 👥 {req.guests} &bull; 💰 Budget: {req.budget}
+                                </p>
+                            </div>
+                            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                                {new Date(req.created_at).toLocaleDateString('cs-CZ')}
+                            </span>
+                        </div>
+                        
+                        <div className="bg-slate-950 p-4 rounded-lg border border-white/5 text-sm text-gray-300 italic">
+                            "{req.note}"
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3">
+                            <div>
+                                <p className="text-xs text-slate-500 uppercase font-bold">Kontakt</p>
+                                <p className="text-white font-mono select-all">{req.contact}</p>
+                            </div>
+                            <div className="bg-slate-800 px-3 py-1 rounded-full text-xs text-orange-300 border border-orange-500/30">
+                                {req.status || 'Nová'}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+
       </div>
     </div>
   );

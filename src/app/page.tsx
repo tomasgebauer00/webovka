@@ -11,6 +11,8 @@ import VisaHealthSection from '../components/VisaHealthSection';
 import TravelHacksSection from '../components/TravelHacksSection';
 import AiChat from '../components/AiChat';
 import LuckyWheel from '../components/LuckyWheel';
+import BeerIndex from '../components/BeerIndex'; // <--- NOVÉ
+import CustomHolidayModal from '../components/CustomHolidayModal'; // <--- NOVÉ
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -174,6 +176,21 @@ export default function Home() {
         <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4" /></div>
         {(dateFrom || dateTo || searchSeats > 1 || searchTerm) && (<button onClick={() => { setDateFrom(null); setDateTo(null); setSearchSeats(1); setActiveCategory('all'); setSearchTerm(''); }} className="mt-6 text-sm text-red-400 hover:text-red-300 font-bold underline decoration-red-400/30">Vymazat filtry ✕</button>)}
         
+        {/* Banner na Tinder Mód */}
+        <div className="max-w-4xl mx-auto mt-8 mb-4 px-4">
+            <div 
+                onClick={() => router.push('/swipe')}
+                className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition shadow-2xl shadow-pink-900/30 border border-white/10 group relative overflow-hidden"
+            >
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="relative z-10">
+                    <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
+                    <p className="text-pink-100">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
+                </div>
+                <div className="relative z-10 bg-white text-pink-600 w-12 h-12 rounded-full flex items-center justify-center font-bold text-2xl group-hover:rotate-12 transition">➜</div>
+            </div>
+        </div>
+
         <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900/50 backdrop-blur text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
       </div>
 
@@ -304,10 +321,14 @@ export default function Home() {
       <div id="hacks-section" className="scroll-mt-24">
         <TravelHacksSection />
       </div>
+      
+      {/* NOVÁ SEKCE: PIVNÍ INDEX */}
+      <BeerIndex />
 
-      {/* === VLOŽENÝ AI CHATBOT A KOLO ŠTĚSTÍ === */}
+      {/* === VLOŽENÝ AI CHATBOT, KOLO ŠTĚSTÍ A POPTÁVKA === */}
       <AiChat />
       <LuckyWheel />
+      <CustomHolidayModal />
 
       <section className="mt-20 py-20 bg-blue-900/10 backdrop-blur-sm border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
     </main>
