@@ -5,23 +5,28 @@ import { useRouter } from 'next/navigation';
 import { Plane, Users, ShieldCheck, Lightbulb, Flame, User, LogOut, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-// === 🛑 TADY SI NASTAV EMAILY ADMINŮ 🛑 ===
+// === 🛑 TADY SI NASTAV EMAILY ADMINŮ (VŠECHNO MALÝM PÍSMEM!) 🛑 ===
 const ADMIN_EMAILS = ['tomasgebauer00@gmail.com']; 
-// Pokud máš víc adminů, odděl je čárkou: ['tvuj@email.cz', 'kolega@email.cz']
 
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 1. ZJISTÍME, JESTLI JE UŽIVATEL PŘIHLÁŠENÝ
   useEffect(() => {
+    // 1. Načíst uživatele při startu
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
+      // 🕵️‍♂️ DEBUG: Podívej se do konzole (F12), co ti to vypíše
+      if (user) {
+        console.log("Přihlášený uživatel:", user.email);
+        console.log("Je admin?", ADMIN_EMAILS.includes(user.email?.toLowerCase() || ''));
+      }
     };
     getUser();
 
+    // 2. Poslouchat změny stavu
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
     });
@@ -29,7 +34,6 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. FUNKCE PRO ODHLÁŠENÍ
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -48,6 +52,9 @@ export default function Navbar() {
     }
   };
 
+  // Pomocná funkce pro kontrolu admina (ignoruje velká/malá písmena)
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
@@ -60,7 +67,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* STŘEDOVÁ NAVIGACE - NÁSTROJE */}
+        {/* STŘEDOVÁ NAVIGACE */}
         <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner">
           <button 
             onClick={() => scrollToSection('buddy-section')}
@@ -87,7 +94,6 @@ export default function Navbar() {
         {/* PRAVÁ ČÁST */}
         <div className="flex items-center gap-3">
           
-          {/* TINDER TLAČÍTKO */}
           <Link 
             href="/swipe" 
             className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm"
@@ -96,12 +102,11 @@ export default function Navbar() {
             <span>Seznamka</span>
           </Link>
 
-          {/* === LOGIKA PŘIHLÁŠENÍ === */}
           {user ? (
             <div className="flex items-center gap-2 ml-2">
               
-              {/* 🛑 ADMIN TLAČÍTKO - ZOBRAZÍ SE JEN POKUD JE EMAIL V SEZNAMU 🛑 */}
-              {user.email && ADMIN_EMAILS.includes(user.email) && (
+              {/* 🛑 OPRAVENÁ PODMÍNKA PRO ADMINA 🛑 */}
+              {isAdmin && (
                 <Link 
                   href="/admin" 
                   className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold"
@@ -110,7 +115,6 @@ export default function Navbar() {
                 </Link>
               )}
 
-              {/* Můj Účet */}
               <Link 
                 href="/profile" 
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
@@ -118,7 +122,6 @@ export default function Navbar() {
                 <User size={16} /> Můj účet
               </Link>
 
-              {/* Odhlásit */}
               <button 
                 onClick={handleLogout}
                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition"
@@ -128,7 +131,6 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            // POKUD NENÍ PŘIHLÁŠENÝ
             <Link 
               href="/login"
               className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
