@@ -5,28 +5,22 @@ import { useRouter } from 'next/navigation';
 import { Plane, Users, ShieldCheck, Lightbulb, Flame, User, LogOut, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-// === 🛑 TADY SI NASTAV EMAILY ADMINŮ (VŠECHNO MALÝM PÍSMEM!) 🛑 ===
+// === 🛑 ADMIN EMAILY 🛑 ===
+// Ujisti se, že je to VŠECHNO malým a BEZ mezer
 const ADMIN_EMAILS = ['tomasgebauer00@gmail.com']; 
 
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string>(''); // Pomocná proměnná pro ladění
 
   useEffect(() => {
-    // 1. Načíst uživatele při startu
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
-      // 🕵️‍♂️ DEBUG: Podívej se do konzole (F12), co ti to vypíše
-      if (user) {
-        console.log("Přihlášený uživatel:", user.email);
-        console.log("Je admin?", ADMIN_EMAILS.includes(user.email?.toLowerCase() || ''));
-      }
     };
     getUser();
 
-    // 2. Poslouchat změny stavu
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
     });
@@ -52,8 +46,12 @@ export default function Navbar() {
     }
   };
 
-  // Pomocná funkce pro kontrolu admina (ignoruje velká/malá písmena)
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  // === 🕵️‍♂️ ROBUSTNÍ KONTROLA ADMINA ===
+  // 1. Vezmeme email
+  // 2. Převedeme na malá písmena (.toLowerCase)
+  // 3. Ořízneme mezery (.trim) - tohle často dělá problémy!
+  const currentEmail = user?.email?.toLowerCase().trim();
+  const isAdmin = currentEmail && ADMIN_EMAILS.includes(currentEmail);
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-xl">
@@ -67,37 +65,31 @@ export default function Navbar() {
           </span>
         </Link>
 
+        {/* --- DOČASNÝ DEBUGGER (POKUD JSI PŘIHLÁŠENÝ, UKÁŽE TVŮJ EMAIL) --- */}
+        {/* Až to opravíme, tenhle řádek smažeme */}
+        {user && !isAdmin && (
+           <div className="hidden xl:block absolute top-20 right-0 bg-red-600 text-white text-xs p-2 z-50">
+             Systém vidí: "{currentEmail}" <br/>
+             Čekám jeden z: {JSON.stringify(ADMIN_EMAILS)}
+           </div>
+        )}
+
         {/* STŘEDOVÁ NAVIGACE */}
         <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner">
-          <button 
-            onClick={() => scrollToSection('buddy-section')}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group"
-          >
+          <button onClick={() => scrollToSection('buddy-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
             <Users size={16} className="text-purple-400 group-hover:scale-110 transition" /> Parťáci
           </button>
-
-          <button 
-            onClick={() => scrollToSection('visa-section')}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group"
-          >
+          <button onClick={() => scrollToSection('visa-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
             <ShieldCheck size={16} className="text-green-400 group-hover:scale-110 transition" /> Víza
           </button>
-
-          <button 
-            onClick={() => scrollToSection('hacks-section')}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group"
-          >
+          <button onClick={() => scrollToSection('hacks-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
             <Lightbulb size={16} className="text-yellow-400 group-hover:scale-110 transition" /> Hacky
           </button>
         </div>
 
         {/* PRAVÁ ČÁST */}
         <div className="flex items-center gap-3">
-          
-          <Link 
-            href="/swipe" 
-            className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm"
-          >
+          <Link href="/swipe" className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm">
             <Flame size={16} className="fill-white group-hover:animate-pulse" /> 
             <span>Seznamka</span>
           </Link>
@@ -105,40 +97,26 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-2 ml-2">
               
-              {/* 🛑 OPRAVENÁ PODMÍNKA PRO ADMINA 🛑 */}
+              {/* 🛑 TLAČÍTKO ADMIN 🛑 */}
               {isAdmin && (
-                <Link 
-                  href="/admin" 
-                  className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold"
-                >
+                <Link href="/admin" className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold">
                   <Settings size={16} /> Admin
                 </Link>
               )}
 
-              <Link 
-                href="/profile" 
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
-              >
+              <Link href="/profile" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm">
                 <User size={16} /> Můj účet
               </Link>
 
-              <button 
-                onClick={handleLogout}
-                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition"
-                title="Odhlásit se"
-              >
+              <button onClick={handleLogout} className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition" title="Odhlásit se">
                 <LogOut size={20} />
               </button>
             </div>
           ) : (
-            <Link 
-              href="/login"
-              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
-            >
+            <Link href="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm">
               Přihlásit
             </Link>
           )}
-
         </div>
       </div>
     </nav>
