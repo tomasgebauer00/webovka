@@ -1,13 +1,41 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plane, Users, ShieldCheck, Lightbulb, Flame } from 'lucide-react';
+import { Plane, Users, ShieldCheck, Lightbulb, Flame, User, LogOut, Settings } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Navbar() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // 1. ZJISTÍME, JESTLI JE UŽIVATEL PŘIHLÁŠENÝ
+  useEffect(() => {
+    // Načíst aktuálního uživatele při startu
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    // Poslouchat změny (kdyby se přihlásil/odhlásil v jiném okně)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. FUNKCE PRO ODHLÁŠENÍ
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push('/');
+    router.refresh();
+  };
 
   const scrollToSection = (id: string) => {
-    // Pokud jsme na hlavní stránce, scrollujeme. Jinak jdeme na hlavní a pak scrollujeme.
     if (window.location.pathname !== '/') {
       router.push(`/#${id}`);
     } else {
@@ -54,25 +82,58 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* PRAVÁ ČÁST - TINDER A LOGIN */}
+        {/* PRAVÁ ČÁST */}
         <div className="flex items-center gap-3">
           
-          {/* TINDER TLAČÍTKO - SPECIÁLNÍ DESIGN */}
+          {/* TINDER TLAČÍTKO (Vždy viditelné) */}
           <Link 
             href="/swipe" 
-            className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group"
+            className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm"
           >
-            <Flame size={18} className="fill-white group-hover:animate-pulse" /> 
+            <Flame size={16} className="fill-white group-hover:animate-pulse" /> 
             <span>Seznamka</span>
           </Link>
 
-          {/* PŘIHLÁSIT */}
-          <Link 
-            href="/login"
-            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20"
-          >
-            Přihlásit
-          </Link>
+          {/* === LOGIKA PŘIHLÁŠENÍ === */}
+          {user ? (
+            // POKUD JE PŘIHLÁŠENÝ -> UKÁŽEME ADMIN A PROFIL
+            <div className="flex items-center gap-2 ml-2">
+              
+              {/* Admin Tlačítko */}
+              <Link 
+                href="/admin" 
+                className="hidden md:flex items-center gap-1 text-gray-300 hover:text-white px-3 py-2 hover:bg-white/10 rounded-lg transition text-sm font-bold"
+              >
+                <Settings size={16} /> Admin
+              </Link>
+
+              {/* Můj Účet */}
+              <Link 
+                href="/profile" 
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
+              >
+                <User size={16} /> Můj účet
+              </Link>
+
+              {/* Odhlásit (jen ikonka pro úsporu místa) */}
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition"
+                title="Odhlásit se"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
+          ) : (
+            // POKUD NENÍ PŘIHLÁŠENÝ -> UKÁŽEME JEN PŘIHLÁSIT
+            <Link 
+              href="/login"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm"
+            >
+              Přihlásit
+            </Link>
+          )}
+
         </div>
       </div>
     </nav>
