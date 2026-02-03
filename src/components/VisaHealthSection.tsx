@@ -12,17 +12,22 @@ export default function VisaHealthSection() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 max-w-3xl mx-auto bg-gray-900/80 p-4 rounded-xl backdrop-blur-sm border border-gray-700">
-            <select className="flex-1 bg-transparent border-none text-white focus:ring-0 text-lg outline-none">
-              <option value="" disabled selected>Odkud jsi? (Česko)</option>
+            {/* OPRAVA: Místo 'selected' u option používáme 'defaultValue' u select */}
+            <select className="flex-1 bg-transparent border-none text-white focus:ring-0 text-lg outline-none" defaultValue="">
+              <option value="" disabled>Odkud jsi? (Česko)</option>
               <option value="cz">Česká republika</option>
             </select>
+            
             <div className="w-px bg-gray-700 hidden md:block"></div>
-            <select className="flex-1 bg-transparent border-none text-white focus:ring-0 text-lg outline-none">
-              <option value="" disabled selected>Kam letíš?</option>
+            
+            {/* OPRAVA: To samé tady */}
+            <select className="flex-1 bg-transparent border-none text-white focus:ring-0 text-lg outline-none" defaultValue="">
+              <option value="" disabled>Kam letíš?</option>
               <option value="th">Thajsko</option>
               <option value="vn">Vietnam</option>
               <option value="us">USA</option>
             </select>
+            
             <button className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold transition-all">
               Zkontrolovat
             </button>
