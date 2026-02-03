@@ -5,11 +5,12 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// === NOVÉ IMPORTY ===
+// === IMPORTY KOMPONENT ===
 import BuddySection from '../components/BuddySection';
 import VisaHealthSection from '../components/VisaHealthSection';
 import TravelHacksSection from '../components/TravelHacksSection';
-import AiChat from '../components/AiChat'; // <--- TADY JE NÁŠ NOVÝ CHATBOT
+import AiChat from '../components/AiChat';
+import LuckyWheel from '../components/LuckyWheel'; // <--- TADY JSME HO PŘIDALI
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -313,8 +314,9 @@ export default function Home() {
       
       <TravelHacksSection />
 
-      {/* === VLOŽENÝ AI CHATBOT === */}
+      {/* === VLOŽENÝ AI CHATBOT A KOLO ŠTĚSTÍ === */}
       <AiChat />
+      <LuckyWheel />
 
       <section className="mt-20 py-20 bg-blue-900/10 backdrop-blur-sm border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
     </main>
