@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Flame } from 'lucide-react'; // Import ikony pro Tinder tlačítko
+import { Flame } from 'lucide-react';
 
 // === IMPORTY KOMPONENT ===
 import BuddySection from '../components/BuddySection';
