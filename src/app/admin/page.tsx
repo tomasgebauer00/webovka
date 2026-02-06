@@ -2,18 +2,21 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import RequestChat from '../../components/RequestChat'; // <--- IMPORT
 
 export default function AdminPage() {
   const router = useRouter();
-  // PŘIDÁNO: 'requests' do typů záložek
   const [activeTab, setActiveTab] = useState<'deals' | 'users' | 'bookings' | 'requests'>('deals');
   const [loading, setLoading] = useState(false);
   
   const [deals, setDeals] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]); // <--- NOVÉ: Stav pro poptávky
+  const [requests, setRequests] = useState<any[]>([]);
   
+  // NOVÉ: Stav pro otevřený chat
+  const [chatRequestId, setChatRequestId] = useState<number | null>(null);
+
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [stats, setStats] = useState({ revenue: 0, totalBookings: 0, totalUsers: 0 });
 
@@ -35,7 +38,7 @@ export default function AdminPage() {
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
     if (profile?.is_admin) {
       setIsAuthorized(true);
-      fetchDeals(); fetchUsers(); fetchBookings(); fetchRequests(); // <--- NOVÉ: Načíst poptávky
+      fetchDeals(); fetchUsers(); fetchBookings(); fetchRequests();
     } else { router.push('/'); }
   };
 
@@ -58,7 +61,6 @@ export default function AdminPage() {
     }
   };
 
-  // NOVÉ: Funkce pro načtení zakázek na míru
   const fetchRequests = async () => {
     const { data } = await supabase.from('custom_requests').select('*').order('created_at', { ascending: false });
     if (data) setRequests(data);
@@ -148,7 +150,6 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab('deals')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'deals' ? 'bg-blue-600' : 'bg-slate-800'}`}>✈️ Zájezdy</button>
           <button onClick={() => setActiveTab('bookings')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'bookings' ? 'bg-green-600' : 'bg-slate-800'}`}>📅 Objednávky</button>
           <button onClick={() => setActiveTab('users')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'users' ? 'bg-purple-600' : 'bg-slate-800'}`}>👥 Uživatelé</button>
-          {/* NOVÉ TLAČÍTKO */}
           <button onClick={() => setActiveTab('requests')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'requests' ? 'bg-orange-600' : 'bg-slate-800'}`}>📩 Poptávky</button>
         </div>
 
@@ -159,17 +160,8 @@ export default function AdminPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 
                 <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3">
-                    <input 
-                        type="checkbox" 
-                        name="is_special_offer" 
-                        id="is_special_offer"
-                        checked={formData.is_special_offer} 
-                        onChange={handleChange} 
-                        className="w-5 h-5 accent-blue-500 cursor-pointer" 
-                    />
-                    <label htmlFor="is_special_offer" className="font-bold text-white cursor-pointer select-none">
-                        ⚡ Akční nabídka (zobrazit nahoře)
-                    </label>
+                    <input type="checkbox" name="is_special_offer" id="is_special_offer" checked={formData.is_special_offer} onChange={handleChange} className="w-5 h-5 accent-blue-500 cursor-pointer" />
+                    <label htmlFor="is_special_offer" className="font-bold text-white cursor-pointer select-none">⚡ Akční nabídka</label>
                 </div>
 
                 <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-slate-950 border border-white/10 rounded p-2 text-white"><option value="Evropa">🇪🇺 Evropa</option><option value="Exotika">🏝️ Exotika</option><option value="Česko">🇨🇿 Česko</option><option value="Letenky">✈️ Jen letenky</option><option value="Last Minute">🔥 Last Minute</option></select>
@@ -184,18 +176,10 @@ export default function AdminPage() {
                         <input type="number" name="original_price" value={formData.original_price} onChange={handleChange} placeholder="Např. 30000" className="bg-slate-800 border border-white/10 rounded p-2 text-red-300" />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <div>
-                            <label className="text-[10px] text-slate-500">Letenka</label>
-                            <input type="number" name="flight_price" value={formData.flight_price} onChange={handleChange} placeholder="Letenka" className="w-full bg-slate-800 border border-white/10 rounded p-2" />
-                        </div>
-                        <div>
-                            <label className="text-[10px] text-slate-500">Hotel</label>
-                            <input type="number" name="hotel_price" value={formData.hotel_price} onChange={handleChange} placeholder="Hotel" className="w-full bg-slate-800 border border-white/10 rounded p-2" />
-                        </div>
+                        <div><label className="text-[10px] text-slate-500">Letenka</label><input type="number" name="flight_price" value={formData.flight_price} onChange={handleChange} placeholder="Letenka" className="w-full bg-slate-800 border border-white/10 rounded p-2" /></div>
+                        <div><label className="text-[10px] text-slate-500">Hotel</label><input type="number" name="hotel_price" value={formData.hotel_price} onChange={handleChange} placeholder="Hotel" className="w-full bg-slate-800 border border-white/10 rounded p-2" /></div>
                     </div>
-                    <div className="text-right text-xs text-green-400 font-bold">
-                        Celkem: {(Number(formData.flight_price) + Number(formData.hotel_price)).toLocaleString()} Kč
-                    </div>
+                    <div className="text-right text-xs text-green-400 font-bold">Celkem: {(Number(formData.flight_price) + Number(formData.hotel_price)).toLocaleString()} Kč</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2"><input type="datetime-local" name="departure_date" value={formData.departure_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /><input type="datetime-local" name="return_date" value={formData.return_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /></div>
@@ -254,7 +238,7 @@ export default function AdminPage() {
           <div className="grid gap-4">{users.map(user => (<div key={user.id} className="border border-white/5 p-4 rounded-xl flex justify-between items-center bg-slate-900"><div className="flex items-center gap-4"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${user.is_admin ? 'bg-purple-600' : 'bg-slate-700'}`}>{user.email?.charAt(0).toUpperCase()}</div><div><h3 className="font-bold text-white">{user.email} {user.is_admin && <span className="bg-purple-600 text-[10px] px-2 py-0.5 rounded-full uppercase ml-2">Admin</span>}</h3></div></div><button onClick={() => toggleAdminStatus(user.id, user.is_admin)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition">{user.is_admin ? 'Odebrat Admina' : 'Udělat Adminem'}</button></div>))}</div>
         )}
 
-        {/* NOVÁ ZÁLOŽKA: POPTÁVKY NA MÍRU */}
+        {/* --- DYNAMICKÝ CHAT V POPTÁVKÁCH --- */}
         {activeTab === 'requests' && (
             <div className="grid gap-4">
                 {requests.length === 0 ? <p className="text-slate-500 italic">Zatím žádné poptávky na míru.</p> : requests.map(req => (
@@ -263,7 +247,7 @@ export default function AdminPage() {
                             <div>
                                 <h3 className="font-bold text-orange-400 text-xl">{req.destination}</h3>
                                 <p className="text-sm text-slate-300 mt-1">
-                                    📅 {req.date_range} &bull; 👥 {req.guests} &bull; 💰 Budget: {req.budget}
+                                    📅 {req.date_range} &bull; 👥 {req.guests} &bull; 💰 {req.budget}
                                 </p>
                             </div>
                             <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
@@ -274,15 +258,23 @@ export default function AdminPage() {
                         <div className="bg-slate-950 p-4 rounded-lg border border-white/5 text-sm text-gray-300 italic">
                             "{req.note}"
                         </div>
+                        <p className="text-white font-mono text-sm mt-1">Kontakt: {req.contact}</p>
 
-                        <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3">
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase font-bold">Kontakt</p>
-                                <p className="text-white font-mono select-all">{req.contact}</p>
-                            </div>
-                            <div className="bg-slate-800 px-3 py-1 rounded-full text-xs text-orange-300 border border-orange-500/30">
-                                {req.status || 'Nová'}
-                            </div>
+                        {/* TLAČÍTKO CHATU */}
+                        <div className="mt-2 border-t border-white/5 pt-3">
+                             <button 
+                                onClick={() => setChatRequestId(chatRequestId === req.id ? null : req.id)}
+                                className={`w-full py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${chatRequestId === req.id ? 'bg-red-600 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                             >
+                                {chatRequestId === req.id ? 'Zavřít chat' : '💬 Otevřít chat'}
+                             </button>
+
+                             {/* POKUD JE CHAT OTEVŘENÝ, ZOBRAZÍ SE KOMPONENTA */}
+                             {chatRequestId === req.id && (
+                                <div className="mt-4">
+                                    <RequestChat requestId={req.id} currentUserRole="admin" />
+                                </div>
+                             )}
                         </div>
                     </div>
                 ))}
