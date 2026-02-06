@@ -8,19 +8,15 @@ import { supabase } from '../lib/supabase';
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false); // Stav pro uložení, zda je admin
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Funkce pro kontrolu uživatele a jeho role
     const checkUserAndRole = async () => {
-      // 1. Zjistíme, kdo je přihlášený v Auth
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
         setUser(session.user);
-
-        // 2. ZEPTÁME SE DATABÁZE NA ROLI (Dynamická kontrola)
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
@@ -28,7 +24,6 @@ export default function Navbar() {
 
         if (profile && profile.role === 'admin') {
           setIsAdmin(true);
-          console.log("Admin ověřen z databáze ✅");
         } else {
           setIsAdmin(false);
         }
@@ -40,7 +35,6 @@ export default function Navbar() {
 
     checkUserAndRole();
 
-    // Poslouchat změny (přihlášení/odhlášení)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -76,61 +70,51 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-xl transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
         
-        {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <Plane className="text-blue-500 group-hover:-rotate-45 transition duration-500 w-6 h-6 md:w-7 md:h-7" />
-          <span className="text-xl md:text-2xl font-black text-white tracking-tighter">
+        {/* LOGO - Na mobilu jen ikona, na desktopu celé */}
+        <Link href="/" className="flex items-center gap-2 group shrink-0">
+          <Plane className="text-blue-500 group-hover:-rotate-45 transition duration-500 w-7 h-7" />
+          <span className="hidden md:inline text-xl md:text-2xl font-black text-white tracking-tighter">
             Trip<span className="text-blue-500">Hack</span>
           </span>
         </Link>
 
-        {/* STŘEDOVÁ NAVIGACE - Na mobilu skrytá (je v dolní liště) */}
-        <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner">
-          <button onClick={() => scrollToSection('buddy-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
-            <Users size={16} className="text-purple-400 group-hover:scale-110 transition" /> Parťáci
+        {/* STŘEDOVÁ NAVIGACE - Zobrazíme ji i na mobilu, ale zmenšenou */}
+        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner mx-2">
+          <button onClick={() => scrollToSection('buddy-section')} className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
+            <Users size={14} className="text-purple-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
+            <span>Parťáci</span>
           </button>
-          <button onClick={() => scrollToSection('visa-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
-            <ShieldCheck size={16} className="text-green-400 group-hover:scale-110 transition" /> Víza
+          <button onClick={() => scrollToSection('visa-section')} className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
+            <ShieldCheck size={14} className="text-green-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
+            <span>Víza</span>
           </button>
-          <button onClick={() => scrollToSection('hacks-section')} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
-            <Lightbulb size={16} className="text-yellow-400 group-hover:scale-110 transition" /> Hacky
+          <button onClick={() => scrollToSection('hacks-section')} className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group">
+            <Lightbulb size={14} className="text-yellow-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
+            <span>Hacky</span>
           </button>
         </div>
 
         {/* PRAVÁ ČÁST */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           
-          {/* TINDER TLAČÍTKO - Na mobilu jen ikonka */}
-          <Link 
-             href="/swipe" 
-             className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-3 py-2 md:px-4 md:py-2 rounded-full font-bold shadow-lg shadow-pink-900/20 transition border border-white/10 hover:scale-105 active:scale-95 group text-sm"
-          >
-            <Flame size={18} className="fill-white group-hover:animate-pulse" /> 
-            <span className="hidden md:inline">Seznamka</span>
-          </Link>
-
           {user ? (
-            <div className="flex items-center gap-2 ml-1">
-              
-              {/* ADMIN - Jen na desktopu */}
+            <div className="flex items-center gap-1">
               {isAdmin && (
                 <Link href="/admin" className="hidden md:flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-2 border border-red-500/30 rounded-lg transition text-sm font-bold">
                   <Settings size={16} /> Admin
                 </Link>
               )}
 
-              {/* MŮJ ÚČET - Na mobilu skryté (je v dolní liště) */}
               <Link href="/profile" className="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm">
                 <User size={16} /> Můj účet
               </Link>
 
-              {/* ODHLÁSIT */}
               <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition" title="Odhlásit se">
                 <LogOut size={20} />
               </button>
             </div>
           ) : (
-            <Link href="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-sm">
+            <Link href="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20 text-xs md:text-sm whitespace-nowrap">
               Přihlásit
             </Link>
           )}

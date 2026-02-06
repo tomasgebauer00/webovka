@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { Flame } from 'lucide-react'; // Import ikony pro Tinder tlačítko
 
 // === IMPORTY KOMPONENT ===
 import BuddySection from '../components/BuddySection';
@@ -13,7 +14,7 @@ import AiChat from '../components/AiChat';
 import LuckyWheel from '../components/LuckyWheel';
 import BeerIndex from '../components/BeerIndex';
 import CustomHolidayModal from '../components/CustomHolidayModal';
-import MobileBottomNav from '../components/MobileBottomNav'; // <--- NOVÉ
+import MobileBottomNav from '../components/MobileBottomNav';
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -159,6 +160,17 @@ export default function Home() {
   return (
     <main className="min-h-screen pb-20">
       <Navbar />
+      
+      {/* PLOVOUCÍ TLAČÍTKO TINDER (MÍSTO BANNERU) */}
+      <button 
+        onClick={() => router.push('/swipe')}
+        className="fixed bottom-40 right-6 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold w-12 h-12 md:w-auto md:h-auto md:py-3 md:px-6 rounded-full shadow-2xl hover:scale-105 transition flex items-center justify-center gap-2 border border-white/20"
+        title="Tinder pro cestovatele"
+      >
+        <Flame size={24} className="fill-white" /> 
+        <span className="hidden md:inline">Seznamka</span>
+      </button>
+
       <div className="relative pt-24 pb-8 text-center px-4">
         <h1 className="text-3xl md:text-6xl font-extrabold text-white mb-6 md:mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
         
@@ -177,21 +189,6 @@ export default function Home() {
         <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4 shadow-lg" /></div>
         {(dateFrom || dateTo || searchSeats > 1 || searchTerm) && (<button onClick={() => { setDateFrom(null); setDateTo(null); setSearchSeats(1); setActiveCategory('all'); setSearchTerm(''); }} className="mt-6 text-sm text-red-400 hover:text-red-300 font-bold underline decoration-red-400/30">Vymazat filtry ✕</button>)}
         
-        {/* Banner na Tinder Mód */}
-        <div className="max-w-4xl mx-auto mt-6 mb-6 px-4">
-            <div 
-                onClick={() => router.push('/swipe')}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition shadow-2xl shadow-pink-900/30 border border-white/10 group relative overflow-hidden"
-            >
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="relative z-10">
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
-                    <p className="text-pink-100 text-sm md:text-base">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
-                </div>
-                <div className="relative z-10 bg-white text-pink-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-xl md:text-2xl group-hover:rotate-12 transition">➜</div>
-            </div>
-        </div>
-
         {/* SCROLLOVACÍ KATEGORIE PRO MOBIL */}
         <div className="w-full overflow-x-auto pb-4 pt-2 px-4 scrollbar-hide -mx-4 md:mx-auto md:overflow-visible flex justify-start md:justify-center gap-3 snap-x">
             {CATEGORIES.map(cat => (
