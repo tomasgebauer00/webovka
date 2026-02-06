@@ -11,8 +11,9 @@ import VisaHealthSection from '../components/VisaHealthSection';
 import TravelHacksSection from '../components/TravelHacksSection';
 import AiChat from '../components/AiChat';
 import LuckyWheel from '../components/LuckyWheel';
-import BeerIndex from '../components/BeerIndex'; // <--- NOVÉ
-import CustomHolidayModal from '../components/CustomHolidayModal'; // <--- NOVÉ
+import BeerIndex from '../components/BeerIndex';
+import CustomHolidayModal from '../components/CustomHolidayModal';
+import MobileBottomNav from '../components/MobileBottomNav'; // <--- NOVÉ
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -158,8 +159,8 @@ export default function Home() {
   return (
     <main className="min-h-screen pb-20">
       <Navbar />
-      <div className="relative pt-28 pb-8 text-center px-4">
-        <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
+      <div className="relative pt-24 pb-8 text-center px-4">
+        <h1 className="text-3xl md:text-6xl font-extrabold text-white mb-6 md:mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
         
         {/* Vyhledávací panel */}
         <div className="max-w-6xl mx-auto bg-slate-900/80 backdrop-blur border border-white/10 rounded-full shadow-2xl p-2 hidden md:flex items-center relative z-40">
@@ -173,30 +174,47 @@ export default function Home() {
           <div className="flex-1 px-6 py-2 relative hover:bg-white/5 rounded-full transition flex flex-col justify-center"><label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Cestující</label><div className="flex items-center justify-between"><span className="text-sm font-bold text-white">{searchSeats} {searchSeats === 1 ? 'osoba' : (searchSeats < 5 ? 'osoby' : 'osob')}</span><div className="flex gap-2 relative z-20"><button onClick={() => handleGuestsChange('decrement')} disabled={searchSeats <= 1} className="w-6 h-6 flex items-center justify-center rounded-full border border-slate-500 text-slate-400 hover:border-white hover:text-white disabled:opacity-30">-</button><button onClick={() => handleGuestsChange('increment')} className="w-6 h-6 flex items-center justify-center rounded-full border border-slate-500 text-slate-400 hover:border-white hover:text-white">+</button></div></div></div>
           <div className="pl-2"><button className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition transform active:scale-95">🔍</button></div>
         </div>
-        <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4" /></div>
+        <div className="md:hidden max-w-sm mx-auto"><input type="text" placeholder="🔍 Kam to bude?" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white mb-4 shadow-lg" /></div>
         {(dateFrom || dateTo || searchSeats > 1 || searchTerm) && (<button onClick={() => { setDateFrom(null); setDateTo(null); setSearchSeats(1); setActiveCategory('all'); setSearchTerm(''); }} className="mt-6 text-sm text-red-400 hover:text-red-300 font-bold underline decoration-red-400/30">Vymazat filtry ✕</button>)}
         
         {/* Banner na Tinder Mód */}
-        <div className="max-w-4xl mx-auto mt-8 mb-4 px-4">
+        <div className="max-w-4xl mx-auto mt-6 mb-6 px-4">
             <div 
                 onClick={() => router.push('/swipe')}
                 className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition shadow-2xl shadow-pink-900/30 border border-white/10 group relative overflow-hidden"
             >
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 <div className="relative z-10">
-                    <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
-                    <p className="text-pink-100">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">🔥 Tinder pro Cestovatele</h3>
+                    <p className="text-pink-100 text-sm md:text-base">Nebaví tě hledat? Swipuj a najdi svůj match!</p>
                 </div>
-                <div className="relative z-10 bg-white text-pink-600 w-12 h-12 rounded-full flex items-center justify-center font-bold text-2xl group-hover:rotate-12 transition">➜</div>
+                <div className="relative z-10 bg-white text-pink-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-xl md:text-2xl group-hover:rotate-12 transition">➜</div>
             </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mt-8 max-w-4xl mx-auto">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all transform hover:scale-105 ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-900/50 backdrop-blur text-slate-400 border border-white/10 hover:border-white/30 hover:text-white'}`}>{cat.label}</button>))}</div>
+        {/* SCROLLOVACÍ KATEGORIE PRO MOBIL */}
+        <div className="w-full overflow-x-auto pb-4 pt-2 px-4 scrollbar-hide -mx-4 md:mx-auto md:overflow-visible flex justify-start md:justify-center gap-3 snap-x">
+            {CATEGORIES.map(cat => (
+                <button 
+                    key={cat.id} 
+                    onClick={() => setActiveCategory(cat.id)} 
+                    className={`
+                        whitespace-nowrap flex-shrink-0 snap-center px-5 py-2.5 rounded-full font-bold text-sm transition-all transform active:scale-95
+                        ${activeCategory === cat.id 
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/20' 
+                            : 'bg-slate-900/80 backdrop-blur text-slate-400 border border-white/10'
+                        }
+                    `}
+                >
+                    {cat.label}
+                </button>
+            ))}
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4"><DealMap deals={filteredDeals} /></div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-8">
+      <div className="max-w-7xl mx-auto px-6 mt-4 md:mt-8">
         {errorMsg ? (
             <div className="text-center py-20 bg-red-900/20 rounded-2xl border border-red-500/50">
                 <h2 className="text-3xl text-red-500 font-bold mb-2">⚠️ CHYBA PŘIPOJENÍ</h2>
@@ -269,7 +287,7 @@ export default function Home() {
       </div>
 
       {compareList.length > 0 && (
-          <div className="fixed bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur-md border-t border-blue-500/30 p-4 z-50 flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+          <div className="fixed bottom-20 md:bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur-md border-t border-blue-500/30 p-4 z-50 flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-full duration-300">
               <div className="max-w-7xl mx-auto w-full flex justify-between items-center px-4">
                   <div className="flex items-center gap-4">
                       <span className="text-white font-bold hidden md:inline">Porovnání:</span>
@@ -331,6 +349,12 @@ export default function Home() {
       <CustomHolidayModal />
 
       <section className="mt-20 py-20 bg-blue-900/10 backdrop-blur-sm border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
+
+      {/* SPODNÍ NAVIGACE (Jen pro mobil) */}
+      <MobileBottomNav />
+
+      {/* Odsazení na mobilu, aby spodní lišta nezakrývala obsah */}
+      <div className="h-20 md:hidden"></div>
     </main>
   );
 }
