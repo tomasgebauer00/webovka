@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Flame } from 'lucide-react';
+import { Flame, Map, X } from 'lucide-react'; // Přidány ikony
 
 // === IMPORTY KOMPONENT ===
 import BuddySection from '../components/BuddySection';
@@ -49,6 +49,9 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchSeats, setSearchSeats] = useState(1); 
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // STAV PRO OTEVŘENÍ MAPY
+  const [isMapOpen, setIsMapOpen] = useState(false);
   
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -161,13 +164,12 @@ export default function Home() {
     <main className="min-h-screen pb-20">
       <Navbar />
       
-      {/* PLOVOUCÍ TLAČÍTKO TINDER (MÍSTO BANNERU) */}
+      {/* PLOVOUCÍ TLAČÍTKO TINDER */}
       <button 
         onClick={() => router.push('/swipe')}
-        className="fixed bottom-40 right-6 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold w-12 h-12 md:w-auto md:h-auto md:py-3 md:px-6 rounded-full shadow-2xl hover:scale-105 transition flex items-center justify-center gap-2 border border-white/20"
-        title="Tinder pro cestovatele"
+        className="fixed bottom-44 right-6 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:scale-105 transition flex items-center gap-2 border border-white/20 animate-bounce-slow"
       >
-        <Flame size={24} className="fill-white" /> 
+        <Flame size={20} className="fill-white" /> 
         <span className="hidden md:inline">Seznamka</span>
       </button>
 
@@ -209,7 +211,58 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto mt-8 mb-16 hidden md:block px-4"><DealMap deals={filteredDeals} /></div>
+      {/* NOVÁ SEKCE: DESIGN BUTTON PRO MAPU */}
+      <div className="max-w-6xl mx-auto mt-8 mb-16 px-4">
+        <div 
+            onClick={() => setIsMapOpen(true)}
+            className="group relative h-48 md:h-64 w-full bg-slate-900 rounded-3xl overflow-hidden cursor-pointer shadow-2xl border border-white/10 hover:border-blue-500/50 transition duration-500"
+        >
+            {/* Pozadí (Ilustrativní mapa) */}
+            <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')] bg-cover bg-center opacity-20 group-hover:scale-105 transition duration-700"></div>
+            
+            {/* Overlay Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent"></div>
+
+            {/* Obsah Banneru */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                <div className="bg-blue-600/20 p-4 rounded-full mb-4 group-hover:scale-110 transition duration-300 border border-blue-500/30">
+                    <Map size={32} className="text-blue-400" />
+                </div>
+                <h2 className="text-2xl md:text-4xl font-black text-white mb-2 tracking-tight">
+                    Interaktivní Mapa Světa 🌍
+                </h2>
+                <p className="text-slate-400 font-medium max-w-lg">
+                    Najdi si dovolenou podle polohy. Klikni a prozkoumej svět.
+                </p>
+                <button className="mt-6 bg-white text-slate-900 px-6 py-2 rounded-full font-bold text-sm hover:bg-blue-50 transition shadow-lg flex items-center gap-2">
+                    Otevřít mapu ➜
+                </button>
+            </div>
+        </div>
+      </div>
+
+      {/* MODÁLNÍ OKNO S MAPOU (Fullscreen) */}
+      {isMapOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-300">
+            {/* Horní lišta modalu */}
+            <div className="flex justify-between items-center p-4 border-b border-white/10 bg-slate-900/50">
+                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                    <Map size={20} className="text-blue-500" /> Mapa destinací
+                </h3>
+                <button 
+                    onClick={() => setIsMapOpen(false)}
+                    className="bg-white/10 p-2 rounded-full text-white hover:bg-red-600 hover:text-white transition"
+                >
+                    <X size={24} />
+                </button>
+            </div>
+            
+            {/* Mapa samotná */}
+            <div className="flex-1 relative">
+                <DealMap deals={filteredDeals} />
+            </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-6 mt-4 md:mt-8">
         {errorMsg ? (
