@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
-import RequestChat from '../../components/RequestChat'; // <--- IMPORT
+import RequestChat from '../../components/RequestChat';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -14,10 +14,12 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   
-  // NOVÉ: Stav pro otevřený chat
   const [chatRequestId, setChatRequestId] = useState<number | null>(null);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
+  // NOVÉ: Ukládáme si roli uživatele
+  const [userRole, setUserRole] = useState<'super_admin' | 'admin' | 'provider' | 'user'>('user');
+  
   const [stats, setStats] = useState({ revenue: 0, totalBookings: 0, totalUsers: 0 });
 
   const [formData, setFormData] = useState<any>({
@@ -32,14 +34,31 @@ export default function AdminPage() {
 
   useEffect(() => { checkAdminAccess(); }, []);
 
+  // NOVÉ: Upravená kontrola přístupu podle rolí
   const checkAdminAccess = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/'); return; }
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (profile?.is_admin) {
+    
+    // Zjistíme roli z tabulky profiles
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+        
+    // Pustíme dál jen Super Admina nebo Admina
+    if (profile?.role === 'super_admin' || profile?.role === 'admin') {
       setIsAuthorized(true);
+      setUserRole(profile.role); // Uložíme si roli
       fetchDeals(); fetchUsers(); fetchBookings(); fetchRequests();
-    } else { router.push('/'); }
+    } else { 
+      // Pokud je to Provider, pošleme ho na jeho Dashboard
+      if (profile?.role === 'provider') {
+          router.push('/host');
+      } else {
+          router.push('/'); 
+      }
+    }
   };
 
   const fetchDeals = async () => {
@@ -64,6 +83,22 @@ export default function AdminPage() {
   const fetchRequests = async () => {
     const { data } = await supabase.from('custom_requests').select('*').order('created_at', { ascending: false });
     if (data) setRequests(data);
+  };
+
+  // NOVÉ: Funkce pro změnu role uživatele (jen pro Super Admina)
+  const changeUserRole = async (userId: string, newRole: string) => {
+      if (!confirm(`Opravdu změnit roli uživatele na ${newRole}?`)) return;
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) alert("Chyba: " + error.message);
+      else {
+          alert("Role změněna! ✅");
+          fetchUsers();
+      }
   };
 
   const handleBookingStatus = async (id: number, status: string) => {
@@ -108,19 +143,21 @@ export default function AdminPage() {
     if (confirm('Smazat?')) { await supabase.from('deals').delete().eq('id', id); fetchDeals(); }
   };
 
-  const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
-    if (!confirm(currentStatus ? "Odebrat admina?" : "Udělat adminem?")) return;
-    await supabase.from('profiles').update({ is_admin: !currentStatus }).eq('id', userId);
-    fetchUsers();
-  };
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     const total = Number(formData.flight_price) + Number(formData.hotel_price);
     const tagsArray = formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t);
     
-    const payload = { ...formData, total_price: total, tags: tagsArray };
+    // Získání aktuálního uživatele pro owner_id
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const payload = { 
+        ...formData, 
+        total_price: total, 
+        tags: tagsArray,
+        owner_id: user?.id // Uložíme admina jako vlastníka
+    };
     
     if (editingId) await supabase.from('deals').update(payload).eq('id', editingId);
     else await supabase.from('deals').insert([payload]);
@@ -134,12 +171,14 @@ export default function AdminPage() {
     setEditingId(null); fetchDeals(); setLoading(false); alert('Uloženo! ✅');
   };
 
-  if (!isAuthorized) return <div className="text-center p-10 text-white">Ověřuji...</div>;
+  if (!isAuthorized) return <div className="text-center p-10 text-white">Ověřuji oprávnění...</div>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Admin Centrum 🛠️</h1>
+        <h1 className="text-4xl font-bold mb-2">Admin Centrum 🛠️</h1>
+        <p className="text-slate-400 mb-8">Přihlášen jako: <span className="text-blue-400 font-bold uppercase">{userRole.replace('_', ' ')}</span></p>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-green-900/20 border border-green-500/30 p-6 rounded-2xl"><p className="text-green-400 text-sm font-bold uppercase">Tržby</p><p className="text-4xl font-extrabold">{stats.revenue.toLocaleString()} Kč</p></div>
             <div className="bg-blue-900/20 border border-blue-500/30 p-6 rounded-2xl"><p className="text-blue-400 text-sm font-bold uppercase">Rezervace</p><p className="text-4xl font-extrabold">{stats.totalBookings}</p></div>
@@ -149,7 +188,12 @@ export default function AdminPage() {
         <div className="flex gap-4 mb-8 border-b border-white/10 pb-4 overflow-x-auto">
           <button onClick={() => setActiveTab('deals')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'deals' ? 'bg-blue-600' : 'bg-slate-800'}`}>✈️ Zájezdy</button>
           <button onClick={() => setActiveTab('bookings')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'bookings' ? 'bg-green-600' : 'bg-slate-800'}`}>📅 Objednávky</button>
-          <button onClick={() => setActiveTab('users')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'users' ? 'bg-purple-600' : 'bg-slate-800'}`}>👥 Uživatelé</button>
+          
+          {/* TLAČÍTKO PRO SPRÁVU UŽIVATELŮ - VIDÍ JEN SUPER ADMIN */}
+          {userRole === 'super_admin' && (
+             <button onClick={() => setActiveTab('users')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'users' ? 'bg-purple-600' : 'bg-slate-800'}`}>👥 Správa Adminů</button>
+          )}
+          
           <button onClick={() => setActiveTab('requests')} className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'requests' ? 'bg-orange-600' : 'bg-slate-800'}`}>📩 Poptávky</button>
         </div>
 
@@ -234,8 +278,39 @@ export default function AdminPage() {
             </div>
         )}
         
-        {activeTab === 'users' && (
-          <div className="grid gap-4">{users.map(user => (<div key={user.id} className="border border-white/5 p-4 rounded-xl flex justify-between items-center bg-slate-900"><div className="flex items-center gap-4"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${user.is_admin ? 'bg-purple-600' : 'bg-slate-700'}`}>{user.email?.charAt(0).toUpperCase()}</div><div><h3 className="font-bold text-white">{user.email} {user.is_admin && <span className="bg-purple-600 text-[10px] px-2 py-0.5 rounded-full uppercase ml-2">Admin</span>}</h3></div></div><button onClick={() => toggleAdminStatus(user.id, user.is_admin)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition">{user.is_admin ? 'Odebrat Admina' : 'Udělat Adminem'}</button></div>))}</div>
+        {/* OBSAH SEKCE UŽIVATELÉ - JEN PRO SUPER ADMINA */}
+        {activeTab === 'users' && userRole === 'super_admin' && (
+          <div className="grid gap-4">
+            {users.map(u => (
+                <div key={u.id} className="border border-white/5 p-4 rounded-xl flex justify-between items-center bg-slate-900">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white">
+                            {u.email?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-white">{u.email}</h3>
+                            <p className="text-xs text-slate-400">Aktuální role: <span className="font-bold text-blue-400 uppercase">{u.role || 'user'}</span></p>
+                        </div>
+                    </div>
+                    
+                    {/* OCHRANA: Sebe (Super Admina) si nemůžeš smazat */}
+                    {u.email !== 'triphack@outlook.cz' && (
+                        <div className="flex gap-2">
+                            {/* Tlačítka podle toho, co uživatel ještě není */}
+                            {u.role !== 'admin' && (
+                                <button onClick={() => changeUserRole(u.id, 'admin')} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded text-xs font-bold hover:bg-blue-600 hover:text-white">Udělat Adminem</button>
+                            )}
+                            {u.role !== 'provider' && (
+                                <button onClick={() => changeUserRole(u.id, 'provider')} className="bg-green-600/20 text-green-400 px-3 py-1 rounded text-xs font-bold hover:bg-green-600 hover:text-white">Udělat Providerem</button>
+                            )}
+                            {u.role !== 'user' && (
+                                <button onClick={() => changeUserRole(u.id, 'user')} className="bg-red-600/20 text-red-400 px-3 py-1 rounded text-xs font-bold hover:bg-red-600 hover:text-white">Odebrat práva</button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ))}
+          </div>
         )}
 
         {/* --- DYNAMICKÝ CHAT V POPTÁVKÁCH --- */}
@@ -260,7 +335,6 @@ export default function AdminPage() {
                         </div>
                         <p className="text-white font-mono text-sm mt-1">Kontakt: {req.contact}</p>
 
-                        {/* TLAČÍTKO CHATU */}
                         <div className="mt-2 border-t border-white/5 pt-3">
                              <button 
                                 onClick={() => setChatRequestId(chatRequestId === req.id ? null : req.id)}
@@ -269,7 +343,6 @@ export default function AdminPage() {
                                 {chatRequestId === req.id ? 'Zavřít chat' : '💬 Otevřít chat'}
                              </button>
 
-                             {/* POKUD JE CHAT OTEVŘENÝ, ZOBRAZÍ SE KOMPONENTA */}
                              {chatRequestId === req.id && (
                                 <div className="mt-4">
                                     <RequestChat requestId={req.id} currentUserRole="admin" />
