@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plane, Users, ShieldCheck, Lightbulb, User, LogOut, Settings } from 'lucide-react';
+import { Plane, Users, ShieldCheck, Lightbulb, User, LogOut, Settings, Building } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<string | null>(null); // Ukládáme celou roli
 
   useEffect(() => {
     const checkUserAndRole = async () => {
@@ -22,15 +22,10 @@ export default function Navbar() {
           .eq('id', session.user.id)
           .single();
 
-        // 🛑 OPRAVA ZDE: Povolíme tlačítko pro 'admin' I 'super_admin'
-        if (profile && (profile.role === 'admin' || profile.role === 'super_admin')) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        if (profile) setRole(profile.role);
       } else {
         setUser(null);
-        setIsAdmin(false);
+        setRole(null);
       }
     };
 
@@ -39,7 +34,7 @@ export default function Navbar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
-        setIsAdmin(false);
+        setRole(null);
       } else if (session?.user) {
         checkUserAndRole(); 
       }
@@ -51,7 +46,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setIsAdmin(false);
+    setRole(null);
     router.push('/');
     router.refresh();
   };
@@ -79,20 +74,16 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* STŘED: NAVIGACE (VIDITELNÁ VŽDY) */}
-        {/* Na mobilu se to posune doprostřed, na desktopu je to absolutně vycentrované */}
+        {/* STŘED: NAVIGACE */}
         <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 shadow-inner overflow-x-auto scrollbar-hide max-w-[60%] md:max-w-none">
           <button onClick={() => scrollToSection('buddy-section')} className="flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group whitespace-nowrap">
-            <Users size={14} className="text-purple-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
-            <span>Parťáci</span>
+            <Users size={14} className="text-purple-400 md:w-4 md:h-4" /> <span>Parťáci</span>
           </button>
           <button onClick={() => scrollToSection('visa-section')} className="flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group whitespace-nowrap">
-            <ShieldCheck size={14} className="text-green-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
-            <span>Víza</span>
+            <ShieldCheck size={14} className="text-green-400 md:w-4 md:h-4" /> <span>Víza</span>
           </button>
           <button onClick={() => scrollToSection('hacks-section')} className="flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-sm font-bold text-gray-300 hover:text-white hover:bg-white/10 transition group whitespace-nowrap">
-            <Lightbulb size={14} className="text-yellow-400 group-hover:scale-110 transition md:w-4 md:h-4" /> 
-            <span>Hacky</span>
+            <Lightbulb size={14} className="text-yellow-400 md:w-4 md:h-4" /> <span>Hacky</span>
           </button>
         </div>
 
@@ -101,8 +92,17 @@ export default function Navbar() {
           
           {user ? (
             <div className="flex items-center gap-1 md:gap-2">
-              {/* Tlačítko Admin - zobrazí se adminovi i super adminovi */}
-              {isAdmin && (
+              
+              {/* TLAČÍTKO PRO HOSTITELE (PROVIDER) */}
+              {role === 'provider' && (
+                <Link href="/host" className="flex items-center gap-1 text-green-400 hover:text-green-300 bg-green-900/20 px-2 py-1.5 md:px-3 md:py-2 border border-green-500/30 rounded-lg transition text-xs md:text-sm font-bold animate-pulse">
+                  <Building size={14} className="md:w-4 md:h-4" /> 
+                  <span className="hidden md:inline">Hostitel</span>
+                </Link>
+              )}
+
+              {/* TLAČÍTKO PRO ADMINY */}
+              {(role === 'admin' || role === 'super_admin') && (
                 <Link href="/admin" className="flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1.5 md:px-3 md:py-2 border border-red-500/30 rounded-lg transition text-xs md:text-sm font-bold">
                   <Settings size={14} className="md:w-4 md:h-4" /> 
                   <span className="hidden md:inline">Admin</span>
@@ -114,7 +114,7 @@ export default function Navbar() {
                 <span className="hidden md:inline">Můj účet</span>
               </Link>
 
-              <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition" title="Odhlásit se">
+              <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition">
                 <LogOut size={18} className="md:w-5 md:h-5" />
               </button>
             </div>
@@ -127,4 +127,4 @@ export default function Navbar() {
       </div>
     </nav>
   );
-}
+} 
