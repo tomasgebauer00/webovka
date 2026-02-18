@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Flame, Map, X } from 'lucide-react'; // Přidány ikony
+import { Flame, Map, X } from 'lucide-react'; 
 
 // === IMPORTY KOMPONENT ===
 import BuddySection from '../components/BuddySection';
@@ -15,6 +15,7 @@ import LuckyWheel from '../components/LuckyWheel';
 import BeerIndex from '../components/BeerIndex';
 import CustomHolidayModal from '../components/CustomHolidayModal';
 import MobileBottomNav from '../components/MobileBottomNav';
+import SiteReviews from '../components/SiteReviews'; // NOVÁ KOMPONENTA RECENZÍ
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -50,7 +51,6 @@ export default function Home() {
   const [searchSeats, setSearchSeats] = useState(1); 
   const [searchTerm, setSearchTerm] = useState('');
   
-  // STAV PRO OTEVŘENÍ MAPY
   const [isMapOpen, setIsMapOpen] = useState(false);
   
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -161,17 +161,24 @@ export default function Home() {
   });
 
   return (
-    <main className="min-h-screen pb-20">
+    <main className="min-h-screen pb-20 overflow-x-hidden">
       <Navbar />
       
-      {/* PLOVOUCÍ TLAČÍTKO TINDER */}
+      {/* === PLOVOUCÍ TLAČÍTKA (IKONKY) === */}
+      {/* 1. SEZNAMKA (TINDER) - Pozice: Nad 'Dovolenou na míru' */}
       <button 
         onClick={() => router.push('/swipe')}
-        className="fixed bottom-44 right-6 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:scale-105 transition flex items-center gap-2 border border-white/20 animate-bounce-slow"
+        className="fixed bottom-36 right-5 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white w-12 h-12 rounded-full shadow-xl hover:scale-110 transition flex items-center justify-center border border-white/20 animate-bounce-slow"
+        title="Cestovatelská seznamka"
       >
-        <Flame size={20} className="fill-white" /> 
-        <span className="hidden md:inline">Seznamka</span>
+        <Flame size={22} className="fill-white" /> 
       </button>
+
+      {/* 2. DOVOLENÁ NA MÍRU (Je v CustomHolidayModal, ten upravíme zvlášť) */}
+      <CustomHolidayModal />
+
+      {/* 3. AI CHAT (Je v AiChat komponentě - úplně dole) */}
+      <AiChat />
 
       <div className="relative pt-24 pb-8 text-center px-4">
         <h1 className="text-3xl md:text-6xl font-extrabold text-white mb-6 md:mb-8">Pojďme cestovat <span className="text-blue-500">levně!</span></h1>
@@ -390,6 +397,9 @@ export default function Home() {
         <TravelHacksSection />
       </div>
       
+      {/* NOVÁ SEKCE: RECENZE SPOLEČNOSTI */}
+      <SiteReviews />
+
       {/* NOVÁ SEKCE: PIVNÍ INDEX */}
       <BeerIndex />
 
