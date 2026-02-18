@@ -3,6 +3,8 @@ import { useEffect, useState, use } from 'react';
 import { supabase } from '../../../lib/supabase';
 import Navbar from '../../../components/Navbar';
 import { useRouter } from 'next/navigation';
+// 1. IMPORT KOMPONENTY RECENZÍ
+import Reviews from '../../../components/Reviews';
 
 export default function DealDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -10,11 +12,14 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
 
   const [deal, setDeal] = useState<any>(null);
   const [weather, setWeather] = useState<any>(null);
+  // Původní načítání recenzí uvnitř useEffectu můžeme nechat pro ten malý náhled nahoře, 
+  // nebo ho smazat, protože 'Reviews' komponenta si je načte sama. 
+  // Nechám to tu, aby ti fungoval ten horní výpis "Recenze ({reviews.length})".
   const [reviews, setReviews] = useState<any[]>([]);
   
   // Modaly
   const [showBookingForm, setShowBookingForm] = useState(false);
-  const [showPackingList, setShowPackingList] = useState(false); // NOVÉ: Modal pro balení
+  const [showPackingList, setShowPackingList] = useState(false);
 
   const [bookingData, setBookingData] = useState({ name: '', email: '', phone: '', people: 1 });
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -53,7 +58,7 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
     return () => clearInterval(timer);
   }, [id]);
 
-  // === NOVÉ: Logika pro generování seznamu věcí ===
+  // === Logika pro generování seznamu věcí ===
   const getPackingItems = () => {
       if (!deal) return [];
       const items = [
@@ -62,7 +67,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
           { name: "Peníze & Platební karta", checked: false },
       ];
 
-      // Podle počasí
       if (weather && weather.temperature > 20) {
           items.push(
               { name: "Sluneční brýle", checked: false },
@@ -77,7 +81,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
           );
       }
 
-      // Podle kategorie
       if (deal.category === 'Exotika' || deal.description.toLowerCase().includes('moře')) {
           items.push(
               { name: "Plavky (alespoň dvoje)", checked: false },
@@ -94,10 +97,9 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
 
       return items;
   };
-  // Uložíme si seznam do stavu, abychom mohli "odškrtávat"
+  
   const [packingItems, setPackingItems] = useState<any[]>([]);
   
-  // Když otevřeme modal, vygenerujeme seznam
   const openPackingList = () => {
       setPackingItems(getPackingItems());
       setShowPackingList(true);
@@ -178,18 +180,12 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
                 <div className="flex flex-wrap gap-4">
                     {!itinerary && <button onClick={generateItinerary} disabled={aiLoading} className="bg-white text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-lg">{aiLoading ? 'Generuji...' : '🤖 Vygenerovat program'}</button>}
                     
-                    {/* NOVÉ TLAČÍTKO: CO SI SBALIT */}
                     <button onClick={openPackingList} className="bg-slate-800 text-white border border-white/20 px-6 py-3 rounded-xl font-bold hover:bg-slate-700 transition shadow-lg flex items-center gap-2">
                         🎒 Co sbalit?
                     </button>
                 </div>
 
                 {itinerary && <div className="mt-4 space-y-3">{itinerary.map((item, i) => (<div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5"><span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span><span className="text-slate-200">{item}</span></div>))}</div>}
-            </section>
-
-            <section className="pt-8 border-t border-white/10">
-                <h3 className="text-2xl font-bold text-white mb-6">Recenze ({reviews.length})</h3>
-                {reviews.length === 0 ? <p className="text-slate-500 italic">Zatím žádné recenze.</p> : reviews.map(rev => (<div key={rev.id} className="bg-slate-900 p-4 rounded-xl border border-white/5 mb-4"><div className="flex justify-between mb-2"><span className="font-bold text-white">{rev.user_name}</span><span className="text-yellow-400 text-sm">{'★'.repeat(rev.rating)}</span></div><p className="text-slate-400">{rev.comment}</p></div>))}
             </section>
         </div>
 
@@ -209,6 +205,11 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
       
+      {/* 2. ZDE VKLÁDÁME NOVOU SEKCÍ RECENZÍ */}
+      <div className="max-w-4xl mx-auto px-6 pb-20">
+          <Reviews dealId={deal.id} />
+      </div>
+
       {/* MODAL: REZERVACE */}
       {showBookingForm && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowBookingForm(false)}>
@@ -226,7 +227,7 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
          </div>
       )}
 
-      {/* NOVÉ: MODAL PACKING LIST */}
+      {/* MODAL PACKING LIST */}
       {showPackingList && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowPackingList(false)}>
              <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={e => e.stopPropagation()}>
