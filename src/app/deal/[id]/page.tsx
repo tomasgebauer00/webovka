@@ -3,7 +3,7 @@ import { useEffect, useState, use } from 'react';
 import { supabase } from '../../../lib/supabase';
 import Navbar from '../../../components/Navbar';
 import { useRouter } from 'next/navigation';
-// 1. IMPORT KOMPONENTY RECENZÍ
+// Import komponenty
 import Reviews from '../../../components/Reviews';
 
 export default function DealDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -12,9 +12,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
 
   const [deal, setDeal] = useState<any>(null);
   const [weather, setWeather] = useState<any>(null);
-  // Původní načítání recenzí uvnitř useEffectu můžeme nechat pro ten malý náhled nahoře, 
-  // nebo ho smazat, protože 'Reviews' komponenta si je načte sama. 
-  // Nechám to tu, aby ti fungoval ten horní výpis "Recenze ({reviews.length})".
   const [reviews, setReviews] = useState<any[]>([]);
   
   // Modaly
@@ -42,7 +39,8 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
                 .then(wData => setWeather(wData.current_weather));
         }
       }
-      const { data: reviewsData } = await supabase.from('reviews').select('*').eq('deal_id', id).order('created_at', { ascending: false });
+      // Načteme recenze i zde, abychom věděli jejich počet pro odznáček nahoře (volitelné)
+      const { data: reviewsData } = await supabase.from('reviews').select('*').eq('deal_id', id);
       setReviews(reviewsData || []);
     };
     fetchData();
@@ -167,6 +165,8 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-12">
+        
+        {/* LEVÝ SLOUPEC (INFORMACE) */}
         <div className="md:col-span-2 space-y-8">
             <section className="bg-slate-900/50 p-6 rounded-2xl border border-white/5">
                 <h3 className="text-2xl font-bold text-white mb-4">O destinaci</h3>
@@ -187,8 +187,14 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
 
                 {itinerary && <div className="mt-4 space-y-3">{itinerary.map((item, i) => (<div key={i} className="flex gap-3 items-start bg-slate-900/50 p-3 rounded-lg border border-white/5"><span className="bg-purple-500/20 text-purple-300 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs">{i+1}</span><span className="text-slate-200">{item}</span></div>))}</div>}
             </section>
+
+            {/* 🔥 TADY JSOU TEĎ RECENZE - PŘÍMO POD INFORMACEMI */}
+            <section>
+                <Reviews dealId={deal.id} />
+            </section>
         </div>
 
+        {/* PRAVÝ SLOUPEC (CENA A REZERVACE) */}
         <div className="space-y-6">
             <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl sticky top-24 shadow-2xl">
                 {!isSoldOut && (
@@ -205,11 +211,6 @@ export default function DealDetail({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
       
-      {/* 2. ZDE VKLÁDÁME NOVOU SEKCÍ RECENZÍ */}
-      <div className="max-w-4xl mx-auto px-6 pb-20">
-          <Reviews dealId={deal.id} />
-      </div>
-
       {/* MODAL: REZERVACE */}
       {showBookingForm && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowBookingForm(false)}>
