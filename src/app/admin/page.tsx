@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import RequestChat from '../../components/RequestChat';
-import { CheckCircle2, XCircle, Info, Trash2, AlertTriangle } from 'lucide-react'; // Ikonky pro hezčí UI
+import { CheckCircle2, XCircle, Info, Trash2, AlertTriangle } from 'lucide-react'; 
 
 export default function AdminPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function AdminPage() {
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
       setToast({ message, type });
-      setTimeout(() => setToast(null), 4000); // Zmizí po 4 vteřinách
+      setTimeout(() => setToast(null), 4000); 
   };
 
   useEffect(() => { checkAdminAccess(); }, []);
@@ -79,8 +79,6 @@ export default function AdminPage() {
     const { data } = await supabase.from('custom_requests').select('*').order('created_at', { ascending: false });
     if (data) setRequests(data);
   };
-
-  // --- FUNKCE UPRAVENÉ PRO NOVÉ UI ---
 
   const changeUserRole = (userId: string, newRole: string) => {
       setConfirmDialog({
@@ -147,28 +145,62 @@ export default function AdminPage() {
       });
   };
 
+  // === OPRAVENÁ FUNKCE PRO UKLÁDÁNÍ DO DB ===
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const total = Number(formData.flight_price) + Number(formData.hotel_price);
-    const tagsArray = formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t);
-    const { data: { user } } = await supabase.auth.getUser();
+    
+    try {
+        const total = Number(formData.flight_price || 0) + Number(formData.hotel_price || 0);
+        const tagsArray = formData.tags ? formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t) : [];
+        const { data: { user } } = await supabase.auth.getUser();
 
-    const payload = { ...formData, total_price: total, tags: tagsArray, owner_id: user?.id };
-    
-    if (editingId) await supabase.from('deals').update(payload).eq('id', editingId);
-    else await supabase.from('deals').insert([payload]);
-    
-    setFormData({ 
-        destination: '', country: '', image: '', from_city: 'Praha', 
-        flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
-        description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0, original_price: 0, is_special_offer: false
-    });
-    setEditingId(null); fetchDeals(); setLoading(false); 
-    showToast("Skvěle! Zájezd je uložen. 🎉", 'success');
+        // Zkopírujeme data do payloadu
+        const payload = { 
+            ...formData, 
+            total_price: total, 
+            tags: tagsArray, 
+            owner_id: user?.id 
+        };
+
+        // OPRAVA: Supabase nesnáší prázdné stringy "" v kolonkách pro datum. 
+        if (!payload.departure_date) payload.departure_date = null;
+        if (!payload.return_date) payload.return_date = null;
+
+        let dbError;
+
+        // Uložení
+        if (editingId) {
+            const { error } = await supabase.from('deals').update(payload).eq('id', editingId);
+            dbError = error;
+        } else {
+            const { error } = await supabase.from('deals').insert([payload]);
+            dbError = error;
+        }
+
+        // Vyhození chyby, pokud nějaká nastala
+        if (dbError) throw dbError;
+
+        // Vyčištění formuláře po úspěšném uložení
+        setFormData({ 
+            destination: '', country: '', image: '', from_city: 'Praha', 
+            flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
+            description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0, original_price: 0, is_special_offer: false
+        });
+        setEditingId(null); 
+        fetchDeals(); 
+        
+        showToast("Skvěle! Zájezd je uložen. 🎉", 'success');
+        
+    } catch (err: any) {
+        console.error("Chyba DB:", err);
+        // Vypsání chyby přes náš nový Toast
+        showToast("Chyba při ukládání: " + err.message, 'error');
+    } finally {
+        setLoading(false);
+    }
   };
 
-  // --- VYLEPŠENÉ AI VYPLŇOVÁNÍ ---
   const handleAiFill = async () => {
     if (!rawText || rawText.length < 30) {
         showToast("Zkopíruj víc textu ze stránky (označ vše Ctrl+A)!", 'error');
