@@ -3,13 +3,9 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const { text } = await req.json();
-    
-    // Použijeme stejný klíč, který už používá tvůj AI Chatbot
     const apiKey = process.env.OPENAI_API_KEY;
 
-    if (!apiKey) {
-      return NextResponse.json({ error: "Chybí OPENAI_API_KEY." }, { status: 500 });
-    }
+    if (!apiKey) return NextResponse.json({ error: "Chybí OPENAI API klíč." }, { status: 500 });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -18,19 +14,17 @@ export async function POST(req: Request) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // Můžeš změnit na gpt-4o, pokud máš přístup
-        response_format: { type: "json_object" }, // TÍMTO HO NUTÍME VRÁTIT JEN DATA, NE OMÁČKU
+        model: 'gpt-3.5-turbo',
         messages: [
           { 
             role: 'system', 
-            content: `Jsi expertní asistent pro cestovní kancelář. Uživatel ti pošle neuspořádaný text zkopírovaný z Airbnb nebo Bookingu (Ctrl+A, Ctrl+C). 
-            Tvým úkolem je extrahovat informace a vrátit POUZE JSON objekt s těmito přesnými klíči:
-            - "destination": Název ubytování nebo hlavní lokalita (např. "Villa Bali", "Apartmán v Římě").
-            - "country": Země nebo region (např. "Indonésie", "Itálie").
-            - "hotel_price": Odhadovaná celková cena ubytování (pouze číslo).
-            - "description": Napiš velmi chytlavý, prodejní popisek (cca 3 věty), proč je toto místo super.
-            - "category": Zařaď to do jedné z těchto kategorií (přesně tyto názvy): "Evropa", "Exotika", "Česko", nebo "Last Minute".
-            Nevracej žádný jiný text kromě JSONu.` 
+            content: `Jsi expertní asistent. Extrahuješ data z textu (Airbnb/Booking) a vracíš POUZE čistý JSON bez markdownu (\`\`\`).
+            Klíče musí být přesně tyto:
+            "destination" (název ubytování),
+            "country" (země, pokud chybí dej "Neznámá"),
+            "hotel_price" (pouze číslo, odhad ceny celkem, pokud chybí dej 0),
+            "description" (chytlavý prodejní text, max 3 věty),
+            "category" (pouze jedno z: "Evropa", "Exotika", "Česko", "Last Minute").`
           },
           { role: 'user', content: text }
         ]
@@ -38,14 +32,22 @@ export async function POST(req: Request) {
     });
 
     const data = await response.json();
+    let contentString = data.choices[0].message.content;
     
-    // AI nám vrátí JSON string uvnitř zprávy, musíme ho rozbalit
-    const parsedData = JSON.parse(data.choices[0].message.content);
+    // Odstranění markdownu, pokud ho AI náhodou přidala (např. ```json ... ```)
+    contentString = contentString.replace(/```json/g, '').replace(/```/g, '').trim();
     
+    const parsedData = JSON.parse(contentString);
+    
+    // Kontrola, jestli AI vůbec něco našla
+    if (!parsedData.destination || parsedData.destination === "Neznámá") {
+        throw new Error("AI nenašla název ubytování v textu.");
+    }
+
     return NextResponse.json(parsedData);
 
   } catch (error: any) {
-    console.error("Chyba parsování AI:", error);
-    return NextResponse.json({ error: "Nepodařilo se zpracovat text." }, { status: 500 });
+    console.error("AI Parse Error:", error);
+    return NextResponse.json({ error: "Nepodařilo se najít data. Zkopíruj víc textu (hlavně název a cenu)." }, { status: 400 });
   }
 }
