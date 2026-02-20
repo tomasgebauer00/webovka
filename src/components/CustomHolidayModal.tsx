@@ -41,10 +41,10 @@ export default function CustomHolidayModal() {
 
   return (
     <>
-      {/* TLAČÍTKO - NOVÝ VZHLED (Kulatá ikonka) */}
+      {/* TLAČÍTKO - NOVÝ VZHLED (Zvýšeno na bottom-28) */}
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-5 z-40 bg-gradient-to-r from-blue-600 to-cyan-600 text-white w-12 h-12 rounded-full shadow-xl hover:scale-110 transition flex items-center justify-center border border-white/20 animate-bounce-slow delay-100"
+        className="fixed bottom-28 right-5 z-40 bg-gradient-to-r from-blue-600 to-cyan-600 text-white w-12 h-12 rounded-full shadow-xl hover:scale-110 transition flex items-center justify-center border border-white/20 animate-bounce-slow delay-100"
         title="Dovolená na míru"
       >
         <Plane size={22} className="fill-white/20" />

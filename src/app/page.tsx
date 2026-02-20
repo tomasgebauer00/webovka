@@ -15,7 +15,7 @@ import LuckyWheel from '../components/LuckyWheel';
 import BeerIndex from '../components/BeerIndex';
 import CustomHolidayModal from '../components/CustomHolidayModal';
 import MobileBottomNav from '../components/MobileBottomNav';
-import SiteReviews from '../components/SiteReviews'; // NOVÁ KOMPONENTA RECENZÍ
+import SiteReviews from '../components/SiteReviews';
 
 // Dynamický import mapy
 const DealMap = dynamic(() => import('../components/DealMap'), { ssr: false });
@@ -165,19 +165,19 @@ export default function Home() {
       <Navbar />
       
       {/* === PLOVOUCÍ TLAČÍTKA (IKONKY) === */}
-      {/* 1. SEZNAMKA (TINDER) - Pozice: Nad 'Dovolenou na míru' */}
+      {/* 1. SEZNAMKA (TINDER) - Změněno na bottom-44 pro větší mezeru */}
       <button 
         onClick={() => router.push('/swipe')}
-        className="fixed bottom-36 right-5 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white w-12 h-12 rounded-full shadow-xl hover:scale-110 transition flex items-center justify-center border border-white/20 animate-bounce-slow"
+        className="fixed bottom-44 right-5 z-40 bg-gradient-to-r from-pink-600 to-purple-600 text-white w-12 h-12 rounded-full shadow-xl hover:scale-110 transition flex items-center justify-center border border-white/20 animate-bounce-slow"
         title="Cestovatelská seznamka"
       >
         <Flame size={22} className="fill-white" /> 
       </button>
 
-      {/* 2. DOVOLENÁ NA MÍRU (Je v CustomHolidayModal, ten upravíme zvlášť) */}
+      {/* 2. DOVOLENÁ NA MÍRU (Je v CustomHolidayModal, ten už má bottom-28) */}
       <CustomHolidayModal />
 
-      {/* 3. AI CHAT (Je v AiChat komponentě - úplně dole) */}
+      {/* 3. AI CHAT (Je v AiChat komponentě - ten má defaultně bottom-5 nebo podobně) */}
       <AiChat />
 
       <div className="relative pt-24 pb-8 text-center px-4">
@@ -406,7 +406,6 @@ export default function Home() {
       {/* === VLOŽENÝ AI CHATBOT, KOLO ŠTĚSTÍ A POPTÁVKA === */}
       <AiChat />
       <LuckyWheel />
-      <CustomHolidayModal />
 
       <section className="mt-20 py-20 bg-blue-900/10 backdrop-blur-sm border-y border-white/5 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div><div className="max-w-4xl mx-auto px-6 text-center relative z-10"><h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Nechceš propásnout chyby v letenkách? 💸</h2><p className="text-slate-400 mb-8 text-lg">Přihlas se k odběru a my ti pošleme ty nejšílenější slevy hned, jak se objeví.</p>{subscribed ? (<div className="bg-green-500/20 text-green-400 p-4 rounded-xl font-bold border border-green-500/30">Díky! Jsi na seznamu. 📩</div>) : (<form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto"><input type="email" placeholder="Tvůj e-mail..." required value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none transition" /><button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">Odebírat</button></form>)}</div></section>
 
