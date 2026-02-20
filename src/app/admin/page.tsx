@@ -145,19 +145,26 @@ export default function AdminPage() {
       });
   };
 
-  // === 🕵️‍♂️ TVRDÁ DIAGNOSTIKA UKLÁDÁNÍ ===
+  // === OPRAVENÉ UKLÁDÁNÍ (KONTROLA FOTKY) ===
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    // 1. Zkontrolujeme, jestli vůbec nahrál fotku!
+    if (!formData.image) {
+        showToast("❌ Chybí fotka! Nezapomeň nahrát obrázek před uložením.", "error");
+        return;
+    }
+
     setLoading(true);
     
     try {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // 1. KOMPLETNÍ OČIŠTĚNÍ DAT (Převedení textů na čísla atd., aby Postgres neřval)
+        // Čištění dat pro databázi
         const payload = { 
             destination: formData.destination || "Neznámo",
             country: formData.country || "Neznámo",
-            image: formData.image || null,
+            image: formData.image, // Tady už víme, že tam fotka 100% je
             from_city: formData.from_city || "Praha",
             flight_price: Number(formData.flight_price) || 0,
             hotel_price: Number(formData.hotel_price) || 0,
@@ -176,23 +183,17 @@ export default function AdminPage() {
             owner_id: user?.id 
         };
 
-        // 2. ODESLÁNÍ DO DB S VYŽÁDÁNÍM ZPĚTNÉ VAZBY (.select())
+        // Odeslání do DB
         if (editingId) {
-            const { error } = await supabase.from('deals').update(payload).eq('id', editingId).select();
-            if (error) {
-                alert("❌ CHYBA DATABÁZE PŘI ÚPRAVĚ:\n\n" + JSON.stringify(error, null, 2));
-                return;
-            }
+            const { error } = await supabase.from('deals').update(payload).eq('id', editingId);
+            if (error) throw error;
         } else {
-            const { error } = await supabase.from('deals').insert([payload]).select();
-            if (error) {
-                alert("❌ CHYBA DATABÁZE PŘI VKLÁDÁNÍ:\n\n" + JSON.stringify(error, null, 2));
-                return;
-            }
+            const { error } = await supabase.from('deals').insert([payload]);
+            if (error) throw error;
         }
 
-        // 3. POKUD TO PROŠLO
-        showToast("✅ ÚSPĚCH! Databáze zájezd přijala.", "success");
+        // POKUD TO PROŠLO
+        showToast("✅ Skvěle! Databáze zájezd úspěšně uložila.", "success");
         setFormData({ 
             destination: '', country: '', image: '', from_city: 'Praha', 
             flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
@@ -202,7 +203,8 @@ export default function AdminPage() {
         fetchDeals(); 
         
     } catch (err: any) {
-        alert("❌ FATÁLNÍ CHYBA KÓDU:\n\n" + err.message);
+        // Pokud nastane jiná chyba, ukážeme ji hezky ve fialovém okně místo ošklivého alertu
+        showToast("❌ CHYBA DB: " + err.message, "error");
     } finally {
         setLoading(false);
     }
@@ -236,7 +238,7 @@ export default function AdminPage() {
         }));
         
         setRawText('');
-        showToast("✨ Magie dokončena! Zkontroluj a ulož.", 'success');
+        showToast("✨ Magie dokončena! Zkontroluj to a NAHRAJ FOTKU.", 'success');
     } catch (err: any) {
         showToast(err.message, 'error');
     } finally {
@@ -393,6 +395,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ... Zbytek (Bookings, Users, Requests) */}
         {activeTab === 'bookings' && (
             <div className="space-y-4">
                 {bookings.map(b => (
