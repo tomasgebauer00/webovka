@@ -31,6 +31,10 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // --- STAVY PRO AI VYPLŇOVÁNÍ ---
+  const [rawText, setRawText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+
   useEffect(() => { checkAdminAccess(); }, []);
 
   const checkAdminAccess = async () => {
@@ -167,6 +171,39 @@ export default function AdminPage() {
     setEditingId(null); fetchDeals(); setLoading(false); alert('Uloženo! ✅');
   };
 
+  // --- FUNKCE PRO AI VYPLNĚNÍ ---
+  const handleAiFill = async () => {
+    if (!rawText || rawText.length < 50) return alert("Vlož více textu (Ctrl+A, Ctrl+C ze stránky ubytování)!");
+    setIsParsing(true);
+    try {
+        const res = await fetch('/api/parse-deal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: rawText })
+        });
+        
+        if (!res.ok) throw new Error("Chyba API");
+        const aiData = await res.json();
+        
+        // Magicky předvyplníme formulář!
+        setFormData((prev: any) => ({
+            ...prev,
+            destination: aiData.destination || prev.destination,
+            country: aiData.country || prev.country,
+            hotel_price: aiData.hotel_price || prev.hotel_price,
+            description: aiData.description || prev.description,
+            category: aiData.category || prev.category
+        }));
+        
+        setRawText(''); // Vyčistíme to ošklivé pole
+        alert("✨ Formulář byl kouzelně vyplněn umělou inteligencí!");
+    } catch (err) {
+        alert("Ajaj, něco se pokazilo. Zkus to ručně.");
+    } finally {
+        setIsParsing(false);
+    }
+  };
+
   if (!isAuthorized) return <div className="text-center p-10 text-white">Ověřuji oprávnění...</div>;
 
   return (
@@ -197,6 +234,30 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="bg-slate-900 p-6 rounded-2xl border border-white/10 h-fit">
               <h2 className="text-xl font-bold mb-4">{editingId ? '✏️ Upravit' : '➕ Přidat'}</h2>
+              
+              {/* --- KOUZELNÉ AI VYPLŇOVÁNÍ --- */}
+              <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl mb-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">🤖</div>
+                  <h3 className="text-purple-400 font-bold mb-2 text-sm flex items-center gap-2">
+                      ✨ Kouzelné předvyplnění pomocí AI
+                  </h3>
+                  <textarea 
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                      placeholder="Sem vlož celý text zkopírovaný z Airbnb nebo Bookingu (Ctrl+A -> Ctrl+C -> Ctrl+V)..."
+                      className="w-full bg-slate-950/50 border border-white/10 rounded p-2 text-xs text-slate-300 h-20 mb-2 focus:border-purple-500 outline-none resize-none"
+                  />
+                  <button 
+                      type="button" 
+                      onClick={handleAiFill} 
+                      disabled={isParsing}
+                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded transition text-sm flex items-center justify-center gap-2"
+                  >
+                      {isParsing ? '🧠 Přemýšlím a čtu...' : '✨ Zpracovat a vyplnit formulář'}
+                  </button>
+              </div>
+              {/* --------------------------------- */}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3">
                     <input type="checkbox" name="is_special_offer" id="is_special_offer" checked={formData.is_special_offer} onChange={handleChange} className="w-5 h-5 accent-blue-500 cursor-pointer" />
@@ -212,7 +273,7 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-2"><div><label className="text-[10px] text-slate-500">Letenka</label><input type="number" name="flight_price" value={formData.flight_price} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded p-2" /></div><div><label className="text-[10px] text-slate-500">Hotel</label><input type="number" name="hotel_price" value={formData.hotel_price} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded p-2" /></div></div>
                 </div>
                 <div className="grid grid-cols-2 gap-2"><input type="datetime-local" name="departure_date" value={formData.departure_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /><input type="datetime-local" name="return_date" value={formData.return_date} onChange={handleChange} className="bg-slate-950 border border-white/10 rounded p-2" /></div>
-                <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Popis..." className="w-full bg-slate-950 border border-white/10 rounded p-2"></textarea>
+                <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Popis..." className="w-full bg-slate-950 border border-white/10 rounded p-2 h-24 resize-none"></textarea>
                 <div className="grid grid-cols-2 gap-2"><input type="number" name="seats_left" value={formData.seats_left} onChange={handleChange} placeholder="Počet míst" className="bg-slate-950 border border-white/10 rounded p-2" /><input name="tags" value={formData.tags} onChange={handleChange} placeholder="Tagy" className="bg-slate-950 border border-white/10 rounded p-2" /></div>
                 <div className="grid grid-cols-2 gap-2"><input type="number" step="any" name="latitude" value={formData.latitude} onChange={handleChange} placeholder="Lat" className="bg-slate-950 border border-white/10 rounded p-2" /><input type="number" step="any" name="longitude" value={formData.longitude} onChange={handleChange} placeholder="Lon" className="bg-slate-950 border border-white/10 rounded p-2" /></div>
                 <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition">Uložit</button>
