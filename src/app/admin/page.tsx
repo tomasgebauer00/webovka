@@ -145,46 +145,40 @@ export default function AdminPage() {
       });
   };
 
-  // === 🛡️ NEPRŮSTŘELNÉ UKLÁDÁNÍ ===
+  // === 🛡️ VOLNÉ UKLÁDÁNÍ (Žádné restrikce) ===
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-
-    if (!formData.image) {
-        showToast("❌ Chybí fotka! Nezapomeň nahrát obrázek před uložením.", "error");
-        return;
-    }
-
     setLoading(true);
     
     try {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // Pojistka pro datumy (pokud je prázdné, hodíme tam aktuální datum, aby to databáze nezahodila)
+        // Pojistka pro datumy (pokud je prázdné, hodíme tam aktuální datum)
         const fallbackDeparture = new Date().toISOString();
         const fallbackReturn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // Za týden
+        
+        // Pojistka pro fotku (pokud nedáš fotku, hodí se tam hezká fotka křídla letadla z Unsplash)
+        const fallbackImage = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=80";
 
         const payload = { 
-            destination: formData.destination || "Neznámo",
+            destination: formData.destination || "Nová Destinace",
             country: formData.country || "Neznámo",
-            image: formData.image,
-            from_city: formData.from_city || "Praha",
+            image: formData.image || fallbackImage, // <-- TADY SE DOSADÍ FOTKA, KDYŽ JI NEVYPLNÍŠ
+            from_city: formData.from_city || "Neznámo",
             flight_price: Number(formData.flight_price) || 0,
             hotel_price: Number(formData.hotel_price) || 0,
             total_price: Number(formData.flight_price || 0) + Number(formData.hotel_price || 0),
             original_price: Number(formData.original_price) || 0,
             is_special_offer: Boolean(formData.is_special_offer),
             rating: Number(formData.rating) || 5,
-            description: formData.description || "Skvělé místo k odpočinku.",
+            description: formData.description || "Informace doplníme brzy.",
             category: formData.category || "Evropa",
             seats_left: Number(formData.seats_left) || 4,
             latitude: Number(formData.latitude) || 0,
             longitude: Number(formData.longitude) || 0,
             tags: formData.tags ? formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
-            
-            // Pojištěná datumy
             departure_date: formData.departure_date ? new Date(formData.departure_date).toISOString() : fallbackDeparture,
             return_date: formData.return_date ? new Date(formData.return_date).toISOString() : fallbackReturn,
-            
             owner_id: user?.id 
         };
 
@@ -200,7 +194,7 @@ export default function AdminPage() {
 
         if (dbError) throw dbError;
 
-        showToast("✅ Skvěle! Databáze zájezd úspěšně uložila.", "success");
+        showToast("✅ Skvěle! Zájezd úspěšně uložen.", "success");
         setFormData({ 
             destination: '', country: '', image: '', from_city: 'Praha', 
             flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
@@ -245,7 +239,7 @@ export default function AdminPage() {
         }));
         
         setRawText('');
-        showToast("✨ Magie dokončena! Zkontroluj to a NAHRAJ FOTKU.", 'success');
+        showToast("✨ Magie dokončena! Zkontroluj a klidně ulož bez fotky.", 'success');
     } catch (err: any) {
         showToast(err.message, 'error');
     } finally {
@@ -349,12 +343,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Název</label><input name="destination" value={formData.destination} onChange={handleChange} placeholder="Název" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-blue-500" required /></div>
-                    <div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Země</label><input name="country" value={formData.country} onChange={handleChange} placeholder="Země" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-blue-500" required /></div>
+                    <div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Název</label><input name="destination" value={formData.destination} onChange={handleChange} placeholder="Název" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-blue-500" /></div>
+                    <div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Země</label><input name="country" value={formData.country} onChange={handleChange} placeholder="Země" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-blue-500" /></div>
                 </div>
 
                 <div className="border border-dashed border-white/20 p-6 rounded-2xl text-center bg-slate-950 hover:bg-slate-900 transition cursor-pointer">
-                    <p className="text-sm font-bold text-slate-400 mb-2">Nahrát fotku</p>
+                    <p className="text-sm font-bold text-slate-400 mb-2">Nahrát fotku (Nemusíš, vloží se automaticky)</p>
                     <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-900 file:text-blue-300 hover:file:bg-blue-800 cursor-pointer"/>
                     {formData.image && <img src={formData.image} className="mt-4 h-32 w-full object-cover rounded-xl shadow-lg" />}
                 </div>
@@ -374,7 +368,7 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-2 gap-4"><div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Kapacita</label><input type="number" name="seats_left" value={formData.seats_left} onChange={handleChange} className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none" /></div><div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Souřadnice (Město)</label><input type="text" name="from_city" value={formData.from_city} onChange={handleChange} placeholder="Odkud?" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none" /></div></div>
 
-                <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition shadow-lg transform active:scale-95 text-lg">Uložit Zájezd</button>
+                <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition shadow-lg transform active:scale-95 text-lg">Uložit Zájezd Hned</button>
               </form>
             </div>
 
@@ -402,6 +396,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ... Zbytek (Bookings, Users, Requests) */}
         {activeTab === 'bookings' && (
             <div className="space-y-4">
                 {bookings.map(b => (
