@@ -38,7 +38,7 @@ export default function AdminPage() {
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
       setToast({ message, type });
-      setTimeout(() => setToast(null), 4000); 
+      setTimeout(() => setToast(null), 5000); 
   };
 
   useEffect(() => { checkAdminAccess(); }, []);
@@ -109,7 +109,7 @@ export default function AdminPage() {
         if (error) throw error;
         const { data: { publicUrl } } = supabase.storage.from('deals_images').getPublicUrl(fileName);
         setFormData({ ...formData, image: publicUrl });
-        showToast("Fotka nahrána!", 'success');
+        showToast("Fotka úspěšně nahrána!", 'success');
     } catch (error: any) { showToast(error.message, 'error'); } finally { setUploading(false); }
   };
 
@@ -145,11 +145,10 @@ export default function AdminPage() {
       });
   };
 
-  // === OPRAVENÉ UKLÁDÁNÍ (KONTROLA FOTKY) ===
+  // === 🛡️ NEPRŮSTŘELNÉ UKLÁDÁNÍ ===
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    // 1. Zkontrolujeme, jestli vůbec nahrál fotku!
     if (!formData.image) {
         showToast("❌ Chybí fotka! Nezapomeň nahrát obrázek před uložením.", "error");
         return;
@@ -160,11 +159,14 @@ export default function AdminPage() {
     try {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // Čištění dat pro databázi
+        // Pojistka pro datumy (pokud je prázdné, hodíme tam aktuální datum, aby to databáze nezahodila)
+        const fallbackDeparture = new Date().toISOString();
+        const fallbackReturn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // Za týden
+
         const payload = { 
             destination: formData.destination || "Neznámo",
             country: formData.country || "Neznámo",
-            image: formData.image, // Tady už víme, že tam fotka 100% je
+            image: formData.image,
             from_city: formData.from_city || "Praha",
             flight_price: Number(formData.flight_price) || 0,
             hotel_price: Number(formData.hotel_price) || 0,
@@ -172,27 +174,32 @@ export default function AdminPage() {
             original_price: Number(formData.original_price) || 0,
             is_special_offer: Boolean(formData.is_special_offer),
             rating: Number(formData.rating) || 5,
-            description: formData.description || "",
+            description: formData.description || "Skvělé místo k odpočinku.",
             category: formData.category || "Evropa",
             seats_left: Number(formData.seats_left) || 4,
             latitude: Number(formData.latitude) || 0,
             longitude: Number(formData.longitude) || 0,
             tags: formData.tags ? formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
-            departure_date: formData.departure_date || null,
-            return_date: formData.return_date || null,
+            
+            // Pojištěná datumy
+            departure_date: formData.departure_date ? new Date(formData.departure_date).toISOString() : fallbackDeparture,
+            return_date: formData.return_date ? new Date(formData.return_date).toISOString() : fallbackReturn,
+            
             owner_id: user?.id 
         };
 
-        // Odeslání do DB
+        let dbError;
+
         if (editingId) {
             const { error } = await supabase.from('deals').update(payload).eq('id', editingId);
-            if (error) throw error;
+            dbError = error;
         } else {
             const { error } = await supabase.from('deals').insert([payload]);
-            if (error) throw error;
+            dbError = error;
         }
 
-        // POKUD TO PROŠLO
+        if (dbError) throw dbError;
+
         showToast("✅ Skvěle! Databáze zájezd úspěšně uložila.", "success");
         setFormData({ 
             destination: '', country: '', image: '', from_city: 'Praha', 
@@ -203,8 +210,8 @@ export default function AdminPage() {
         fetchDeals(); 
         
     } catch (err: any) {
-        // Pokud nastane jiná chyba, ukážeme ji hezky ve fialovém okně místo ošklivého alertu
-        showToast("❌ CHYBA DB: " + err.message, "error");
+        console.error("DEBUG CHYBY:", err);
+        showToast("❌ CHYBA DATABÁZE: " + (err.message || JSON.stringify(err)), "error");
     } finally {
         setLoading(false);
     }
@@ -216,7 +223,7 @@ export default function AdminPage() {
         return;
     }
     setIsParsing(true);
-    showToast("AI analyzuje text, vydrž...", 'info');
+    showToast("🧠 AI analyzuje text, vydrž...", 'info');
     
     try {
         const res = await fetch('/api/parse-deal', {
@@ -262,7 +269,7 @@ export default function AdminPage() {
                   {toast.type === 'success' && <CheckCircle2 className="text-green-400" />}
                   {toast.type === 'error' && <XCircle className="text-red-400" />}
                   {toast.type === 'info' && <Info className="text-blue-400" />}
-                  <p className="font-bold text-sm">{toast.message}</p>
+                  <p className="font-bold text-sm max-w-sm whitespace-pre-wrap">{toast.message}</p>
               </div>
           </div>
       )}
@@ -395,7 +402,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ... Zbytek (Bookings, Users, Requests) */}
         {activeTab === 'bookings' && (
             <div className="space-y-4">
                 {bookings.map(b => (
