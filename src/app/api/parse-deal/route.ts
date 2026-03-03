@@ -18,13 +18,15 @@ export async function POST(req: Request) {
         messages: [
           { 
             role: 'system', 
-            content: `Jsi expertní asistent. Extrahuješ data z textu (Airbnb/Booking) a vracíš POUZE čistý JSON bez markdownu (\`\`\`).
-            Klíče musí být přesně tyto:
-            "destination" (název ubytování),
-            "country" (země, pokud chybí dej "Neznámá"),
-            "hotel_price" (pouze číslo, odhad ceny celkem, pokud chybí dej 0),
-            "description" (chytlavý prodejní text, max 3 věty),
-            "category" (pouze jedno z: "Evropa", "Exotika", "Česko", "Last Minute").`
+            content: `Jsi expertní asistent pro cestovní kancelář. Tvojí úlohou je extrahovat data z textu (např. z Airbnb nebo Bookingu) a vrátit POUZE čistý JSON bez markdownu.
+
+Klíče musí být přesně tyto:
+"destination" (název ubytování nebo destinace),
+"country" (země, pokud chybí, odhadni ji podle destinace, pokud nevíš, dej "Neznámá"),
+"hotel_price" (pouze číslo, odhad ceny celkem za ubytování pro zadané osoby/noci, pokud chybí, dej 0),
+"description" (chytlavý prodejní popis pro web TripHack.cz, max 3 věty, česky),
+"category" (pouze jedno z: "Evropa", "Exotika", "Česko", "Letenky", "Last Minute", vyber nejvhodnější podle lokace),
+"activity_tags" (seznam 3-4 krátkých, chytlavých aktivit s emoji, které se k této lokaci a ubytování hodí, např. "🏝️ Potápění", "🏔️ Trekování", "🏛️ Historické památky", "🏄 Surfing", "🍸 Noční život", "🌿 Relax v přírodě").`
           },
           { role: 'user', content: text }
         ]

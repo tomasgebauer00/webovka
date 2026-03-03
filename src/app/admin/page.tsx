@@ -20,11 +20,13 @@ export default function AdminPage() {
   const [userRole, setUserRole] = useState<'super_admin' | 'admin' | 'provider' | 'user'>('user');
   const [stats, setStats] = useState({ revenue: 0, totalBookings: 0, totalUsers: 0 });
 
+  // PŘIDÁNO: 'activities' pole s výchozí hodnotou ''
   const [formData, setFormData] = useState<any>({
     destination: '', country: '', image: '', from_city: 'Praha',
     departure_date: '', return_date: '', flight_price: 0, hotel_price: 0,
     original_price: 0, is_special_offer: false,
-    rating: 5, description: '', category: 'Evropa', tags: '', seats_left: 4, latitude: 0, longitude: 0
+    rating: 5, description: '', category: 'Evropa', tags: '', seats_left: 4, latitude: 0, longitude: 0,
+    activities: ''
   });
 
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -118,6 +120,7 @@ export default function AdminPage() {
       setFormData({ ...formData, [e.target.name]: value });
   };
 
+  // UPRAVENO: handleEdit pro načtení aktivit
   const handleEdit = (deal: any) => {
     setEditingId(deal.id);
     setFormData({ 
@@ -126,7 +129,8 @@ export default function AdminPage() {
         return_date: deal.return_date?.slice(0, 16), 
         tags: deal.tags ? deal.tags.join(', ') : '',
         original_price: deal.original_price || 0,
-        is_special_offer: deal.is_special_offer || false
+        is_special_offer: deal.is_special_offer || false,
+        activities: deal.activities ? deal.activities.join(', ') : '' // Načtení aktivit
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast("Režim úprav aktivován", 'info');
@@ -145,9 +149,15 @@ export default function AdminPage() {
       });
   };
 
-  // === 🛡️ VOLNÉ UKLÁDÁNÍ (Žádné restrikce) ===
+  // === UPRAVENÉ NEPRŮSTŘELNÉ UKLÁDÁNÍ ===
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    if (!formData.image) {
+        showToast("❌ Chybí fotka! Nezapomeň nahrát obrázek před uložením.", "error");
+        return;
+    }
+
     setLoading(true);
     
     try {
@@ -160,10 +170,13 @@ export default function AdminPage() {
         // Pojistka pro fotku (pokud nedáš fotku, hodí se tam hezká fotka křídla letadla z Unsplash)
         const fallbackImage = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=80";
 
+        // PŘEVOD AKTIVIT z čárkou odděleného textu na pole
+        const activitiesArray = formData.activities ? formData.activities.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t) : [];
+
         const payload = { 
             destination: formData.destination || "Nová Destinace",
             country: formData.country || "Neznámo",
-            image: formData.image || fallbackImage, // <-- TADY SE DOSADÍ FOTKA, KDYŽ JI NEVYPLNÍŠ
+            image: formData.image || fallbackImage,
             from_city: formData.from_city || "Neznámo",
             flight_price: Number(formData.flight_price) || 0,
             hotel_price: Number(formData.hotel_price) || 0,
@@ -179,7 +192,8 @@ export default function AdminPage() {
             tags: formData.tags ? formData.tags.toString().split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
             departure_date: formData.departure_date ? new Date(formData.departure_date).toISOString() : fallbackDeparture,
             return_date: formData.return_date ? new Date(formData.return_date).toISOString() : fallbackReturn,
-            owner_id: user?.id 
+            owner_id: user?.id,
+            activities: activitiesArray // Uložení pole aktivit
         };
 
         let dbError;
@@ -195,10 +209,12 @@ export default function AdminPage() {
         if (dbError) throw dbError;
 
         showToast("✅ Skvěle! Zájezd úspěšně uložen.", "success");
+        // VYČIŠTĚNÍ FORMULÁŘE (včetně aktivit)
         setFormData({ 
             destination: '', country: '', image: '', from_city: 'Praha', 
             flight_price: 0, hotel_price: 0, tags: '', category: 'Evropa', 
-            description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0, original_price: 0, is_special_offer: false
+            description: '', rating: 5, seats_left: 4, latitude: 0, longitude: 0, original_price: 0, is_special_offer: false,
+            activities: ''
         });
         setEditingId(null); 
         fetchDeals(); 
@@ -211,6 +227,7 @@ export default function AdminPage() {
     }
   };
 
+  // === UPRAVENO handleAiFill pro načtení vygenerovaných aktivit
   const handleAiFill = async () => {
     if (!rawText || rawText.length < 30) {
         showToast("Zkopíruj víc textu ze stránky (označ vše Ctrl+A)!", 'error');
@@ -229,17 +246,19 @@ export default function AdminPage() {
         const aiData = await res.json();
         if (!res.ok) throw new Error(aiData.error || "Chyba API");
         
+        // PŘEVOD vygenerovaných aktivit zpět na čárkou oddělený text pro formulář
         setFormData((prev: any) => ({
             ...prev,
             destination: aiData.destination || prev.destination,
             country: aiData.country || prev.country,
             hotel_price: aiData.hotel_price || prev.hotel_price,
             description: aiData.description || prev.description,
-            category: aiData.category || prev.category
+            category: aiData.category || prev.category,
+            activities: aiData.activity_tags ? aiData.activity_tags.join(', ') : prev.activities // Vygenerované aktivity oddělené čárkou
         }));
         
         setRawText('');
-        showToast("✨ Magie dokončena! Zkontroluj a klidně ulož bez fotky.", 'success');
+        showToast("✨ Magie dokončena! Zkontroluj a ulož.", 'success');
     } catch (err: any) {
         showToast(err.message, 'error');
     } finally {
@@ -366,6 +385,12 @@ export default function AdminPage() {
 
                 <div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Prodejní popis</label><textarea name="description" value={formData.description} onChange={handleChange} placeholder="Proč tam vyrazit?" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 h-28 resize-none outline-none focus:border-blue-500"></textarea></div>
 
+                {/* --- PŘIDÁNO: Pole pro AKTIVITY --- */}
+                <div>
+                    <label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Aktivity (čárkou oddělené)</label>
+                    <textarea name="activities" value={formData.activities} onChange={handleChange} placeholder="Zadejte aktivity oddělené čárkou, např.: 🏄 Potápění, 🏔️ Trekování" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 h-20 resize-none outline-none focus:border-blue-500"></textarea>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4"><div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Kapacita</label><input type="number" name="seats_left" value={formData.seats_left} onChange={handleChange} className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none" /></div><div><label className="text-xs text-slate-500 font-bold uppercase mb-1 block">Souřadnice (Město)</label><input type="text" name="from_city" value={formData.from_city} onChange={handleChange} placeholder="Odkud?" className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none" /></div></div>
 
                 <button type="submit" disabled={loading || uploading} className="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition shadow-lg transform active:scale-95 text-lg">Uložit Zájezd Hned</button>
@@ -384,6 +409,14 @@ export default function AdminPage() {
                                 </h3>
                                 <p className="text-sm text-slate-400">{deal.country}</p>
                                 <p className="text-green-400 font-bold">{deal.total_price} Kč</p>
+                                {/* --- ZOBRAZENÍ AKTIVIT v seznamu zájezdů --- */}
+                                {deal.activities && (
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                        {deal.activities.map((a: string) => (
+                                            <span key={a} className="bg-slate-700/50 text-xs px-2 py-0.5 rounded-full text-slate-300">{a}</span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -396,7 +429,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ... Zbytek (Bookings, Users, Requests) */}
+        {/* Zbytek (Bookings, Users, Requests) */}
         {activeTab === 'bookings' && (
             <div className="space-y-4">
                 {bookings.map(b => (
@@ -425,7 +458,7 @@ export default function AdminPage() {
                     </div>
                     {u.email !== 'triphack@outlook.cz' && (
                         <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
-                            {u.role !== 'admin' && <button onClick={() => changeUserRole(u.id, 'admin')} className="bg-blue-900/30 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition border border-blue-500/20">Udělat Adminem</button>}
+                            {u.role !== 'admin' && <button onClick={() => changeUserRole(u.id, 'admin')} className="bg-blue-900/30 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition border border-blue-500/20">Udedat Adminem</button>}
                             {u.role !== 'provider' && <button onClick={() => changeUserRole(u.id, 'provider')} className="bg-green-900/30 text-green-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-600 hover:text-white transition border border-green-500/20">🏠 Hostitel</button>}
                             {u.role !== 'user' && <button onClick={() => changeUserRole(u.id, 'user')} className="bg-red-900/30 text-red-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition border border-red-500/20">Odebrat práva</button>}
                         </div>
